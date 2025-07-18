@@ -79,7 +79,7 @@ While this container works on ARM64 (Apple Silicon, ARM servers), SQL Server run
 - `MSSQL_PID`: SQL Server edition (Express, Developer, Standard, Enterprise)
 
 #### .NET Application
-- `DOTNET_ENVIRONMENT`: .NET environment (Production, Test, Development)
+- `ASPNETCORE_ENVIRONMENT`: ASP.NET Core environment (Production, Test, Development)
 - `ASPNETCORE_ENVIRONMENT`: ASP.NET Core environment (Production, Test, Development)
 - `ASPNETCORE_URLS`: Listening URLs
 - `ConnectionStrings__DefaultConnection`: Database connection string
@@ -91,6 +91,7 @@ You can add your own environment variables by defining them in docker-compose.ym
 - `ENABLE_CI_CD`: Enable automatic deployment from GitHub (true/false)
 - `GITHUB_REPO`: GitHub repository in format "owner/repo"
 - `GITHUB_BRANCH`: GitHub branch to monitor for changes (default: main)
+- `PROJECT_PATH`: Path to .csproj or .sln file in repository (optional, auto-detects if not specified)
 - `POLL_INTERVAL`: Interval in seconds to check for updates (default: 60)
 - `BUILD_SCRIPT`: Build script to run after code update (default: deploy.sh)
 - `ENABLE_AUTO_BUILD`: Enable automatic build after code update (true/false)
@@ -118,8 +119,27 @@ The container supports automatic deployment from GitHub repositories:
 1. Set `ENABLE_CI_CD=true`
 2. Configure `GITHUB_REPO` to your repository (format: "owner/repo")
 3. Set `GITHUB_BRANCH` to desired branch (default: main)
-4. For private repositories, set `GITHUB_DEPLOY_KEY` to your SSH private key
-5. Adjust `POLL_INTERVAL` for how often to check for updates
+4. **For monorepos**: Set `PROJECT_PATH` to specific project file (e.g., `src/WebApi/WebApi.csproj`)
+5. **For private repositories only**: Mount SSH deploy key at `/secrets/github_deploy_key`
+6. Adjust `POLL_INTERVAL` for how often to check for updates
+
+> **Note**: Public repositories work without any authentication. SSH deploy keys are only needed for private repositories.
+
+### Monorepo Support
+The container can work with monorepos by specifying the exact project to build:
+
+```bash
+# Example: Public repository (no authentication needed)
+GITHUB_REPO=mycompany/public-monorepo
+PROJECT_PATH=backend/webapi/WebApi.csproj
+
+# Example: Private repository (requires SSH deploy key)
+GITHUB_REPO=mycompany/private-monorepo
+PROJECT_PATH=backend/webapi/WebApi.csproj
+# + volume mount: ./secrets:/secrets:ro
+```
+
+If `PROJECT_PATH` is not specified, the container will auto-detect the first `.sln` or `.csproj` file in the repository root.
 
 ### Build Script
 The container will run `deploy.sh` (or script defined in `BUILD_SCRIPT`) after each update.

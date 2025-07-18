@@ -117,7 +117,7 @@ jobs:
 - `SA_PASSWORD`: `YourStrong@Passw0rd123`
 - `ACCEPT_EULA`: `Y`
 - `MSSQL_PID`: `Express`
-- `DOTNET_ENVIRONMENT`: `Development`
+- `ASPNETCORE_ENVIRONMENT`: `Development`
 - `ASPNETCORE_ENVIRONMENT`: `Development`
 - `ENABLE_CI_CD`: `false` (for initial testing)
 

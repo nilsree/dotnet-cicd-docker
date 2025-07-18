@@ -8,8 +8,10 @@ Make sure your .NET repository has:
 - `deploy.sh` script (optional, default script is used if not present)
 - Any database migration scripts
 
-### 2. GitHub Deploy Key
-For secure repository access you need a GitHub Deploy Key:
+### 2. GitHub Deploy Key (Only for Private Repositories)
+For **private repositories** you need a GitHub Deploy Key. **Public repositories work without any authentication.**
+
+#### For Private Repositories:
 
 1. Generate SSH key pair:
    ```bash
@@ -26,9 +28,48 @@ For secure repository access you need a GitHub Deploy Key:
 
 3. Use private key in container:
    - Copy content from `~/.ssh/github_deploy_key` (private key)
-   - Mount as volume at `/secrets/github_deploy_key` or use environment variable
+   - Mount as volume at `/secrets/github_deploy_key`
+
+#### For Public Repositories:
+No authentication needed! Just set `GITHUB_REPO` and the container will automatically use HTTPS to access your public repository.
 
 ### 3. Repository structure
+```
+your-repo/
+├── YourApp/                    # Your .NET application folder
+│   ├── YourApp.csproj
+│   ├── Program.cs
+│   └── ...
+├── deploy.sh (optional)        # Custom build script
+├── sql-scripts/               # Database initialization
+│   └── migrations.sql
+```
+
+**Example with test app:**
+```
+dotnet-mssql-docker/
+├── test-examples/
+│   └── TestApp/
+│       ├── TestApp.csproj
+│       ├── Program.cs
+│       └── Controllers/
+├── deploy.sh
+└── sql-scripts/
+└── README.md
+```
+
+**Monorepo example:**
+```
+my-company-monorepo/
+├── backend/
+│   ├── WebApi/
+│   │   ├── WebApi.csproj         # Set PROJECT_PATH=backend/WebApi/WebApi.csproj
+│   │   └── Program.cs
+│   └── Services/
+├── frontend/
+├── mobile/
+└── deploy.sh
+```
 ```
 your-repo/
 ├── YourApp/                    # Your .NET application folder
@@ -56,17 +97,18 @@ dotnet-mssql-docker/
 
 ## Docker Compose Example
 
+### For Public Repository:
 ```yaml
 version: '3.8'
 services:
   app:
     image: nilsree/dotnet-mssql-docker
     environment:
-      # CI/CD configuration
+      # CI/CD configuration (public repo)
       - ENABLE_CI_CD=true
-      - GITHUB_REPO=your-username/your-repo
+      - GITHUB_REPO=your-username/your-public-repo
       - GITHUB_BRANCH=main
-      - GITHUB_DEPLOY_KEY=-----BEGIN OPENSSH PRIVATE KEY-----...-----END OPENSSH PRIVATE KEY-----
+      - PROJECT_PATH=src/MyApp/MyApp.csproj  # Optional: path to specific project in monorepo
       - POLL_INTERVAL=30
       - BUILD_SCRIPT=deploy.sh
       - ENABLE_AUTO_BUILD=true
@@ -81,6 +123,33 @@ services:
       - "1433:1433"
 ```
 
+### For Private Repository:
+```yaml
+version: '3.8'
+services:
+  app:
+    image: nilsree/dotnet-mssql-docker
+    environment:
+      # CI/CD configuration (private repo)
+      - ENABLE_CI_CD=true
+      - GITHUB_REPO=your-username/your-private-repo
+      - GITHUB_BRANCH=main
+      - PROJECT_PATH=src/MyApp/MyApp.csproj  # Optional: path to specific project in monorepo
+      - POLL_INTERVAL=30
+      - BUILD_SCRIPT=deploy.sh
+      - ENABLE_AUTO_BUILD=true
+      
+      # Database
+      - SA_PASSWORD=YourStrong@Passw0rd123
+      - ConnectionStrings__DefaultConnection=Server=localhost;Database=YourApp;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=true;
+    volumes:
+      - ./data:/var/opt/mssql/data
+      - ./secrets:/secrets:ro  # SSH deploy key for private repos
+    ports:
+      - "8080:80"
+      - "1433:1433"
+```
+
 ## Unraid Setup
 
 ### 1. Install template
@@ -88,14 +157,27 @@ services:
 2. Or add repository URL to Community Applications
 
 ### 2. Configure variables
+
+#### For Public Repository:
 In Unraid Docker settings:
 - **Enable CI/CD**: `true`
-- **GitHub Repository**: `your-username/your-repo`
+- **GitHub Repository**: `your-username/your-public-repo`
 - **GitHub Branch**: `main`
-- **GitHub Deploy Key**: `-----BEGIN OPENSSH PRIVATE KEY-----...-----END OPENSSH PRIVATE KEY-----`
+- **Project Path**: `src/MyApp/MyApp.csproj` (optional for monorepos)
 - **Poll Interval**: `60`
 - **Build Script**: `deploy.sh`
 - **Enable Auto Build**: `true`
+
+#### For Private Repository:
+In Unraid Docker settings (additional volume required):
+- **Enable CI/CD**: `true`
+- **GitHub Repository**: `your-username/your-private-repo`
+- **GitHub Branch**: `main`
+- **Project Path**: `src/MyApp/MyApp.csproj` (optional for monorepos)
+- **Poll Interval**: `60`
+- **Build Script**: `deploy.sh`
+- **Enable Auto Build**: `true`
+- **Volume**: `/mnt/user/appdata/secrets:/secrets:ro` (for SSH deploy key)
 
 ## Deployment Workflow
 

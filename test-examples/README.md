@@ -36,7 +36,7 @@ docker push yourusername/dotnet-mssql-test:latest
 5. **Environment Variables**:
    - `SA_PASSWORD=TestPassword123!`
    - `ACCEPT_EULA=Y`
-   - `DOTNET_ENVIRONMENT=Development`
+   - `ASPNETCORE_ENVIRONMENT=Development`
 
 ### Test Endpoints:
 - `http://UNRAID_IP:8080/` - Basic info

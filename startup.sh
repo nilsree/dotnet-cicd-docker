@@ -8,11 +8,22 @@ wait_for_sql_server() {
     fi
     
     echo "Waiting for SQL Server to start..."
-    while ! /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; do
-        echo "SQL Server is not ready yet. Waiting..."
-        sleep 2
+    local max_attempts=30
+    local attempt=0
+    
+    while [ $attempt -lt $max_attempts ]; do
+        if /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
+            echo "SQL Server is ready!"
+            return 0
+        fi
+        
+        echo "SQL Server is not ready yet. Waiting... (attempt $((attempt + 1))/$max_attempts)"
+        sleep 3
+        attempt=$((attempt + 1))
     done
-    echo "SQL Server is ready!"
+    
+    echo "ERROR: SQL Server failed to start within $((max_attempts * 3)) seconds"
+    return 1
 }
 
 # Function to start SQL Server
@@ -23,8 +34,15 @@ start_sql_server() {
         return 0
     fi
     
-    echo "Starting SQL Server..."
-    /opt/mssql/bin/sqlservr &
+    echo "Starting SQL Server with custom initialization..."
+    
+    # Set required environment variables
+    export MSSQL_SA_PASSWORD="$SA_PASSWORD"
+    export ACCEPT_EULA="$ACCEPT_EULA"
+    export MSSQL_PID="$MSSQL_PID"
+    
+    # Start SQL Server using our custom init script
+    /init-mssql.sh &
     SQL_PID=$!
     
     # Wait for SQL Server to be ready
@@ -40,6 +58,10 @@ start_sql_server() {
             done
         fi
         echo "SQL Server started successfully"
+    else
+        echo "ERROR: SQL Server failed to start properly"
+        echo "Check SQL Server logs for details"
+        return 1
     fi
 }
 
@@ -108,11 +130,7 @@ if [ -z "$SA_PASSWORD" ]; then
     exit 1
 fi
 
-# Configure SQL Server
-echo "Configuring SQL Server..."
-/opt/mssql/bin/mssql-conf setup accept-eula
-
-# Start SQL Server
+# Start SQL Server (configuration is handled in the function)
 start_sql_server
 
 # Start CI/CD process
