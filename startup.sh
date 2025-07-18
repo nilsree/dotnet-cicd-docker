@@ -7,14 +7,29 @@ wait_for_sql_server() {
         return 1
     fi
     
+    # Determine which version of sqlcmd to use
+    local SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
+    if [ ! -f "$SQLCMD" ]; then
+        SQLCMD="/opt/mssql-tools/bin/sqlcmd"
+    fi
+    
     echo "Waiting for SQL Server to start..."
     local max_attempts=30
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
-            echo "SQL Server is ready!"
-            return 0
+        if [ -f "/opt/mssql-tools18/bin/sqlcmd" ]; then
+            # Use TLS version for newer tools
+            if $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
+                echo "SQL Server is ready!"
+                return 0
+            fi
+        else
+            # Use non-TLS version for older tools
+            if $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -Q "SELECT 1" > /dev/null 2>&1; then
+                echo "SQL Server is ready!"
+                return 0
+            fi
         fi
         
         echo "SQL Server is not ready yet. Waiting... (attempt $((attempt + 1))/$max_attempts)"
@@ -50,10 +65,19 @@ start_sql_server() {
         # Run any initialization scripts if they exist
         if [ -d "/docker-entrypoint-initdb.d" ]; then
             echo "Running initialization scripts..."
+            
+            # Determine which version of sqlcmd to use
+            local SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
+            local SQLCMD_ARGS="-S localhost -U sa -P $SA_PASSWORD -C"
+            if [ ! -f "$SQLCMD" ]; then
+                SQLCMD="/opt/mssql-tools/bin/sqlcmd"
+                SQLCMD_ARGS="-S localhost -U sa -P $SA_PASSWORD"
+            fi
+            
             for f in /docker-entrypoint-initdb.d/*.sql; do
                 if [ -f "$f" ]; then
                     echo "Executing $f..."
-                    /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -C -i "$f"
+                    $SQLCMD $SQLCMD_ARGS -i "$f"
                 fi
             done
         fi
@@ -81,11 +105,28 @@ start_ci_cd() {
 start_dotnet_app() {
     echo "Starting .NET application..."
     
-    # Find the main DLL file
-    DLL_FILE=$(find /app -name "*.dll" -type f | head -n 1)
+    # Find the main application by looking for .runtimeconfig.json file
+    RUNTIME_CONFIG=$(find /app -name "*.runtimeconfig.json" -type f | head -n 1)
     
-    if [ -z "$DLL_FILE" ]; then
-        echo "Error: No .dll file found in /app directory"
+    if [ -n "$RUNTIME_CONFIG" ]; then
+        APP_NAME=$(basename "$RUNTIME_CONFIG" .runtimeconfig.json)
+        DLL_FILE="/app/$APP_NAME.dll"
+        echo "Found runtime config: $RUNTIME_CONFIG"
+        echo "Main application: $APP_NAME"
+    else
+        # Fallback: look for main application DLL by name pattern
+        DLL_FILE=$(find /app -name "*.dll" -type f | grep -E "(App\.dll|\.App\.dll)" | head -n 1)
+        
+        # If still no DLL found, try to exclude known dependency libraries
+        if [ -z "$DLL_FILE" ]; then
+            DLL_FILE=$(find /app -name "*.dll" -type f | grep -v "System\." | grep -v "Microsoft\." | grep -v "Swashbuckle\." | grep -v "Azure\." | head -n 1)
+        fi
+    fi
+    
+    if [ -z "$DLL_FILE" ] || [ ! -f "$DLL_FILE" ]; then
+        echo "Error: No main application .dll file found in /app directory"
+        echo "Available files:"
+        ls -la /app/
         exit 1
     fi
     
