@@ -1,92 +1,39 @@
 #!/bin/bash
 
-# Function to check if SQL Server is available and ready
-wait_for_sql_server() {
-    if ! command -v /opt/mssql/bin/sqlservr >/dev/null 2>&1; then
-        echo "SQL Server not installed (likely ARM64 architecture) - skipping SQL Server startup"
-        return 1
-    fi
+# Function to find and identify the .NET application DLL
+find_app_dll() {
+    local app_dll=""
     
-    # Determine which version of sqlcmd to use
-    local SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
-    if [ ! -f "$SQLCMD" ]; then
-        SQLCMD="/opt/mssql-tools/bin/sqlcmd"
-    fi
-    
-    echo "Waiting for SQL Server to start..."
-    local max_attempts=30
-    local attempt=0
-    
-    while [ $attempt -lt $max_attempts ]; do
-        if [ -f "/opt/mssql-tools18/bin/sqlcmd" ]; then
-            # Use TLS version for newer tools
-            if $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
-                echo "SQL Server is ready!"
-                return 0
-            fi
-        else
-            # Use non-TLS version for older tools
-            if $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -Q "SELECT 1" > /dev/null 2>&1; then
-                echo "SQL Server is ready!"
-                return 0
+    # Look for .runtimeconfig.json files which indicate the main executable
+    for config_file in *.runtimeconfig.json; do
+        if [ -f "$config_file" ]; then
+            # Extract the base name (remove .runtimeconfig.json)
+            local base_name="${config_file%.runtimeconfig.json}"
+            local dll_file="${base_name}.dll"
+            
+            if [ -f "$dll_file" ]; then
+                app_dll="$dll_file"
+                break
             fi
         fi
-        
-        echo "SQL Server is not ready yet. Waiting... (attempt $((attempt + 1))/$max_attempts)"
-        sleep 3
-        attempt=$((attempt + 1))
     done
     
-    echo "ERROR: SQL Server failed to start within $((max_attempts * 3)) seconds"
-    return 1
-}
-
-# Function to start SQL Server
-start_sql_server() {
-    if ! command -v /opt/mssql/bin/sqlservr >/dev/null 2>&1; then
-        echo "SQL Server not available on this architecture - continuing without local SQL Server"
-        echo "You can connect to an external SQL Server using connection strings"
-        return 0
+    # Fallback to finding any DLL file
+    if [ -z "$app_dll" ]; then
+        for dll in *.dll; do
+            if [ -f "$dll" ]; then
+                app_dll="$dll"
+                break
+            fi
+        done
     fi
     
-    echo "Starting SQL Server with custom initialization..."
-    
-    # Set required environment variables
-    export MSSQL_SA_PASSWORD="$SA_PASSWORD"
-    export ACCEPT_EULA="$ACCEPT_EULA"
-    export MSSQL_PID="$MSSQL_PID"
-    
-    # Start SQL Server using our custom init script
-    /init-mssql.sh &
-    SQL_PID=$!
-    
-    # Wait for SQL Server to be ready
-    if wait_for_sql_server; then
-        # Run any initialization scripts if they exist
-        if [ -d "/docker-entrypoint-initdb.d" ]; then
-            echo "Running initialization scripts..."
-            
-            # Determine which version of sqlcmd to use
-            local SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
-            local SQLCMD_ARGS="-S localhost -U sa -P $SA_PASSWORD -C"
-            if [ ! -f "$SQLCMD" ]; then
-                SQLCMD="/opt/mssql-tools/bin/sqlcmd"
-                SQLCMD_ARGS="-S localhost -U sa -P $SA_PASSWORD"
-            fi
-            
-            for f in /docker-entrypoint-initdb.d/*.sql; do
-                if [ -f "$f" ]; then
-                    echo "Executing $f..."
-                    $SQLCMD $SQLCMD_ARGS -i "$f"
-                fi
-            done
-        fi
-        echo "SQL Server started successfully"
-    else
-        echo "ERROR: SQL Server failed to start properly"
-        echo "Check SQL Server logs for details"
+    if [ -z "$app_dll" ]; then
+        echo "ERROR: No .NET application DLL found in /app" >&2
         return 1
     fi
+    
+    echo "$app_dll"
 }
 
 # Function to start CI/CD process
@@ -105,33 +52,16 @@ start_ci_cd() {
 start_dotnet_app() {
     echo "Starting .NET application..."
     
-    # Find the main application by looking for .runtimeconfig.json file
-    RUNTIME_CONFIG=$(find /app -name "*.runtimeconfig.json" -type f | head -n 1)
+    # Find the main application DLL
+    APP_DLL=$(find_app_dll)
     
-    if [ -n "$RUNTIME_CONFIG" ]; then
-        APP_NAME=$(basename "$RUNTIME_CONFIG" .runtimeconfig.json)
-        DLL_FILE="/app/$APP_NAME.dll"
-        echo "Found runtime config: $RUNTIME_CONFIG"
-        echo "Main application: $APP_NAME"
-    else
-        # Fallback: look for main application DLL by name pattern
-        DLL_FILE=$(find /app -name "*.dll" -type f | grep -E "(App\.dll|\.App\.dll)" | head -n 1)
-        
-        # If still no DLL found, try to exclude known dependency libraries
-        if [ -z "$DLL_FILE" ]; then
-            DLL_FILE=$(find /app -name "*.dll" -type f | grep -v "System\." | grep -v "Microsoft\." | grep -v "Swashbuckle\." | grep -v "Azure\." | head -n 1)
-        fi
-    fi
-    
-    if [ -z "$DLL_FILE" ] || [ ! -f "$DLL_FILE" ]; then
-        echo "Error: No main application .dll file found in /app directory"
-        echo "Available files:"
-        ls -la /app/
+    if [ -z "$APP_DLL" ]; then
+        echo "ERROR: Could not find application DLL"
         exit 1
     fi
     
-    echo "Starting .NET application: $DLL_FILE"
-    dotnet "$DLL_FILE" &
+    echo "Starting .NET application: $APP_DLL"
+    dotnet "$APP_DLL" &
     DOTNET_PID=$!
     
     echo ".NET application started successfully"
@@ -153,26 +83,13 @@ shutdown() {
         wait $DOTNET_PID 2>/dev/null
     fi
     
-    # Kill SQL Server
-    if [ ! -z "$SQL_PID" ]; then
-        kill $SQL_PID
-        wait $SQL_PID 2>/dev/null
-    fi
-    
     exit 0
 }
 
 # Set up signal handlers
 trap shutdown SIGTERM SIGINT
 
-# Validate required environment variables
-if [ -z "$SA_PASSWORD" ]; then
-    echo "Error: SA_PASSWORD environment variable is required"
-    exit 1
-fi
-
-# Start SQL Server (configuration is handled in the function)
-start_sql_server
+echo "=== .NET GitHub CI/CD Container Startup ==="
 
 # Start CI/CD process
 start_ci_cd
@@ -180,5 +97,5 @@ start_ci_cd
 # Start .NET application
 start_dotnet_app
 
-# Wait for both processes
-wait
+# Wait for .NET application to finish
+wait $DOTNET_PID

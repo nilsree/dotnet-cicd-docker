@@ -1,38 +1,34 @@
-# .NET MSSQL Docker Image for Unraid
+# .NET GitHub CI/CD Docker Image for Unraid
 
-This Docker image allows you to run a .NET application together with an MSSQL Server database in a single container, optimized for Unraid.
+**Repository:** `nilsree/dotnet-cicd-docker`
+
+This Docker image provides a streamlined solution for running .NET applications with GitHub CI/CD integration, optimized for Unraid and container environments.
 
 ## Features
 
 - ✅ Runs .NET applications (supports .NET 6, 7, 8, 9)
-- ✅ Integrated MSSQL Server Express (amd64 only)
+- ✅ **GitHub CI/CD integration with automatic deployment**
+- ✅ **Monorepo support with PROJECT_PATH**
 - ✅ Multi-architecture support (linux/amd64, linux/arm64)
-- ✅ ARM64 support with external database option
 - ✅ Configurable .csproj path via build argument
-- ✅ Volumes for database data files
-- ✅ Custom environment variables
-- ✅ **CI/CD with GitHub integration**
-- ✅ **Automatic deployment from GitHub repository**
-- ✅ **Configurable build script**
+- ✅ Secure SSH Deploy Key handling via volume mounts
+- ✅ **Automatic build and restart on GitHub changes**
+- ✅ **Configurable polling intervals and build scripts**
 - ✅ Unraid template included
-- ✅ Automatic database initialization
+- ✅ Professional English documentation
 - ✅ Safe shutdown of all services
 
-## Architecture Support
+## Use Cases
 
-### AMD64 (x86_64):
-- ✅ Native SQL Server 2022 Express
-- ✅ Optimal performance
-- ✅ All features supported
+### Standalone .NET Applications:
+- ✅ Web APIs and services
+- ✅ Background services and workers
+- ✅ Console applications with web interfaces
 
-### ARM64 (Apple Silicon, ARM servers):
-- ✅ .NET application runs natively
-- ✅ SQL Server runs via x86_64 emulation (Docker Desktop)
-- ⚠️ Slightly reduced SQL Server performance due to emulation
-- ✅ Full feature compatibility
-
-> **Note for ARM64**: SQL Server runs through x86_64 emulation on ARM64 platforms. While fully functional, there may be a performance impact. For production ARM64 deployments, consider using Azure SQL Database or an external SQL Server instance for optimal performance.
-
+### CI/CD Integration:
+- ✅ Automatic deployment from GitHub
+- ✅ Development and staging environments
+- ✅ Rapid prototyping and testing
 ## Usage
 
 ### 1. Build Docker Image
@@ -63,26 +59,12 @@ docker-compose up -d
 
 ## Configuration
 
-### ARM64 Performance Considerations
-
-While this container works on ARM64 (Apple Silicon, ARM servers), SQL Server runs via x86_64 emulation:
-
-- **Development**: Works perfectly fine for development and testing
-- **Production**: Consider external SQL Server or Azure SQL for better performance
-- **Docker Desktop**: Handles emulation automatically on Apple Silicon
-
 ### Environment Variables
-
-#### SQL Server
-- `SA_PASSWORD`: SQL Server SA password (required, min 8 characters with upper/lower case, numbers and special characters)
-- `ACCEPT_EULA`: Accept SQL Server EULA (must be 'Y')
-- `MSSQL_PID`: SQL Server edition (Express, Developer, Standard, Enterprise)
 
 #### .NET Application
 - `ASPNETCORE_ENVIRONMENT`: ASP.NET Core environment (Production, Test, Development)
-- `ASPNETCORE_ENVIRONMENT`: ASP.NET Core environment (Production, Test, Development)
 - `ASPNETCORE_URLS`: Listening URLs
-- `ConnectionStrings__DefaultConnection`: Database connection string
+- `ConnectionStrings__DefaultConnection`: Database connection string (if using external database)
 
 #### Custom Variables
 You can add your own environment variables by defining them in docker-compose.yml or Unraid template.
@@ -100,16 +82,13 @@ You can add your own environment variables by defining them in docker-compose.ym
 
 ### Volumes
 
-- `/var/opt/mssql/data`: SQL Server data files
-- `/var/opt/mssql/log`: SQL Server log files  
-- `/var/opt/mssql/backup`: SQL Server backup files
-- `/docker-entrypoint-initdb.d`: SQL initialization scripts
+- `/app/data`: Application data directory
+- `/secrets/github_deploy_key`: SSH Deploy Key for GitHub access (read-only)
 
 ### Ports
 
 - `80`: HTTP web application
 - `443`: HTTPS web application
-- `1433`: SQL Server database
 
 ## CI/CD and Automatic Deployment
 
@@ -164,28 +143,12 @@ dotnet build -c Release
 # Custom build steps here
 ```
 
-## Database Initialization
-
-Place SQL scripts in the `sql-scripts/` folder or mount them to `/docker-entrypoint-initdb.d` in the container. Scripts are executed automatically on first startup.
-
-Example:
-```sql
--- init.sql
-CREATE DATABASE MyApp;
-GO
-USE MyApp;
-GO
-CREATE TABLE Users (Id INT IDENTITY(1,1) PRIMARY KEY, Name NVARCHAR(100));
-GO
-```
-
 ## Security
 
-- **IMPORTANT**: Change SA_PASSWORD before production - this is required!
-- Use strong passwords (minimum 8 characters, upper/lower case, numbers, special characters)
-- Update ConnectionStrings__DefaultConnection to match your SA_PASSWORD
-- Consider using SQL Server authentication instead of SA
-- Limit network access to SQL Server port (1433)
+- **GitHub Deploy Keys**: Store SSH keys securely via volume mounts, not environment variables
+- **Environment Variables**: Use Docker secrets or secure volume mounts for sensitive configuration
+- **Network Security**: Limit container network access as needed
+- **Regular Updates**: Keep base images and dependencies updated
 
 ## .NET Version
 
@@ -198,9 +161,37 @@ The container uses .NET 9.0 by default. To upgrade to newer versions, see `DOTNE
 docker logs -f your-container-name
 ```
 
-### Connect to SQL Server
+### Connect to Application
 ```bash
-docker exec -it your-container-name /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourPassword" -C
+```bash
+curl http://localhost:8080/
+```
+
+### Debug CI/CD process
+```bash
+docker exec -it your-container-name /ci-cd.sh
+```
+
+## Unraid Specific Info
+
+### Recommended mappings
+- Host: `/mnt/user/appdata/dotnet-cicd-docker/data` → Container: `/app/data`
+- Host: `/mnt/user/appdata/dotnet-cicd-docker/secrets` → Container: `/secrets`
+
+### Resources
+- Minimum RAM: 512MB
+- Recommended RAM: 1-2GB
+- CPU: 1 core
+
+## Development
+
+To develop and test:
+
+1. Clone repository
+2. Place your .NET application in a subfolder
+3. Update CSPROJ_PATH in build.sh
+4. Build and test locally
+5. Deploy to Unraid
 ```
 
 ### Check CI/CD status
@@ -216,9 +207,9 @@ docker exec -it your-container-name /ci-cd.sh
 ## Unraid Specific Info
 
 ### Recommended mappings
-- Host: `/mnt/user/appdata/dotnet-mssql-docker/data` → Container: `/var/opt/mssql/data`
-- Host: `/mnt/user/appdata/dotnet-mssql-docker/log` → Container: `/var/opt/mssql/log`
-- Host: `/mnt/user/appdata/dotnet-mssql-docker/backup` → Container: `/var/opt/mssql/backup`
+- Host: `/mnt/user/appdata/dotnet-cicd-docker/data` → Container: `/var/opt/mssql/data`
+- Host: `/mnt/user/appdata/dotnet-cicd-docker/log` → Container: `/var/opt/mssql/log`
+- Host: `/mnt/user/appdata/dotnet-cicd-docker/backup` → Container: `/var/opt/mssql/backup`
 
 ### Resources
 - Minimum RAM: 1GB

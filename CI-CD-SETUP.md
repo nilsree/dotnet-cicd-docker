@@ -47,7 +47,7 @@ your-repo/
 
 **Example with test app:**
 ```
-dotnet-mssql-docker/
+dotnet-cicd-docker/
 ├── test-examples/
 │   └── TestApp/
 │       ├── TestApp.csproj
@@ -83,7 +83,7 @@ your-repo/
 
 **Example with test app:**
 ```
-dotnet-mssql-docker/
+dotnet-cicd-docker/
 ├── test-examples/
 │   └── TestApp/
 │       ├── TestApp.csproj
@@ -102,7 +102,7 @@ dotnet-mssql-docker/
 version: '3.8'
 services:
   app:
-    image: nilsree/dotnet-mssql-docker
+    image: nilsree/dotnet-cicd-docker
     environment:
       # CI/CD configuration (public repo)
       - ENABLE_CI_CD=true
@@ -128,7 +128,7 @@ services:
 version: '3.8'
 services:
   app:
-    image: nilsree/dotnet-mssql-docker
+    image: nilsree/dotnet-cicd-docker
     environment:
       # CI/CD configuration (private repo)
       - ENABLE_CI_CD=true
