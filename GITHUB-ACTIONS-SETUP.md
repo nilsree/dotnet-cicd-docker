@@ -15,7 +15,7 @@ This guide explains how to set up automated Docker image publishing to Docker Hu
 1. Log in to [Docker Hub](https://hub.docker.com/)
 2. Go to **Account Settings** → **Security** → **Access Tokens**
 3. Click **New Access Token**
-4. **Description**: `GitHub Actions - dotnet-mssql-docker`
+4. **Description**: `GitHub Actions - dotnet-cicd-docker`
 5. **Permissions**: `Read, Write, Delete` (or `Read, Write` if you prefer)
 6. Click **Generate**
 7. **Copy the token** - you won't see it again!
@@ -51,10 +51,10 @@ This will trigger a **test build only** - no Docker Hub push.
 6. Click **Publish release**
 
 This will trigger a build and push multiple tags:
-- `nilsree/dotnet-mssql-docker:latest`
-- `nilsree/dotnet-mssql-docker:1.0.0`
-- `nilsree/dotnet-mssql-docker:1.0`
-- `nilsree/dotnet-mssql-docker:1`
+- `nilsree/dotnet-cicd-docker:latest`
+- `nilsree/dotnet-cicd-docker:1.0.0`
+- `nilsree/dotnet-cicd-docker:1.0`
+- `nilsree/dotnet-cicd-docker:1`
 
 ## What the Workflow Does
 
@@ -122,7 +122,7 @@ If you want to update the Docker Hub description manually:
 npm install -g docker-hub-description
 
 # Update description
-docker-hub-description nilsree/dotnet-mssql-docker README.md
+docker-hub-description nilsree/dotnet-cicd-docker README.md
 ```
 
 ## Next Steps
@@ -140,14 +140,14 @@ Using specific version:
 ```yaml
 services:
   app:
-    image: nilsree/dotnet-mssql-docker:1.0.0
+    image: nilsree/dotnet-cicd-docker:1.0.0
 ```
 
 Using major version:
 ```yaml
 services:
   app:
-    image: nilsree/dotnet-mssql-docker:1
+    image: nilsree/dotnet-cicd-docker:1
 ```
 
 ## 🎯 Release Process

@@ -1,13 +1,13 @@
 version: '3.8'
 
 services:
-  dotnet-mssql-docker:
+  dotnet-cicd-docker:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         CSPROJ_PATH: "test-examples/TestApp/TestApp.csproj"  # Example test app
-    container_name: dotnet-mssql-docker
+    container_name: dotnet-cicd-docker
     environment:
       # SQL Server configuration
       - SA_PASSWORD=YourStrong@Passw0rd123  # CHANGE THIS PASSWORD!

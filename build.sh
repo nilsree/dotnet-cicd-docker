@@ -5,7 +5,7 @@
 
 # Set default values
 CSPROJ_PATH=${1:-"test-examples/TestApp/TestApp.csproj"}
-IMAGE_NAME=${2:-"nilsree/dotnet-mssql-docker"}
+IMAGE_NAME=${2:-"nilsree/dotnet-cicd-docker"}
 IMAGE_TAG=${3:-"dev"}
 
 echo "Building Docker image locally (development only)..."
@@ -29,7 +29,7 @@ if [ $? -eq 0 ]; then
     echo "⚠️  IMPORTANT: Remember to set SA_PASSWORD environment variable!"
     echo ""
     echo "To run the container locally:"
-    echo "docker run -d --name dotnet-mssql-docker \\"
+    echo "docker run -d --name dotnet-cicd-docker \\"
     echo "  -p 8080:80 -p 1433:1433 \\"
     echo "  -v mssql-data:/var/opt/mssql/data \\"
     echo "  -e SA_PASSWORD=YourStrong@Passw0rd123 \\"

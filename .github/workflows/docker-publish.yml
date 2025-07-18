@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: nilsree/dotnet-mssql-docker
+  IMAGE_NAME: nilsree/dotnet-cicd-docker
 
 jobs:
   build:
