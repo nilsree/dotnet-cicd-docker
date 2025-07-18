@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <Name>DotNet-MSSQL-Docker</Name>
+  <n>DotNet-MSSQL-Docker</n>
   <Repository>nilsree/dotnet-mssql-docker</Repository>
   <Registry>https://hub.docker.com/</Registry>
   <Network>bridge</Network>
@@ -66,82 +66,77 @@
   <Environment>
     <Variable>
       <Value>YourStrong@Passw0rd123</Value>
-      <Name>SA_PASSWORD</Name>
+      <n>SA_PASSWORD</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>Y</Value>
-      <Name>ACCEPT_EULA</Name>
+      <n>ACCEPT_EULA</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>Express</Value>
-      <Name>MSSQL_PID</Name>
+      <n>MSSQL_PID</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>Production</Value>
-      <Name>DOTNET_ENVIRONMENT</Name>
-      <Mode/>
-    </Variable>
-    <Variable>
-      <Value>Production</Value>
-      <Name>ASPNETCORE_ENVIRONMENT</Name>
+      <n>ASPNETCORE_ENVIRONMENT</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>http://+:80</Value>
-      <Name>ASPNETCORE_URLS</Name>
+      <n>ASPNETCORE_URLS</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>Server=localhost;Database=YourDatabase;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=true;</Value>
-      <Name>ConnectionStrings__DefaultConnection</Name>
+      <n>ConnectionStrings__DefaultConnection</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value/>
-      <Name>CUSTOM_VAR_1</Name>
+      <n>CUSTOM_VAR_1</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value/>
-      <Name>CUSTOM_VAR_2</Name>
+      <n>CUSTOM_VAR_2</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>false</Value>
-      <Name>ENABLE_CI_CD</Name>
+      <n>ENABLE_CI_CD</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value/>
-      <Name>GITHUB_REPO</Name>
+      <n>GITHUB_REPO</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>main</Value>
-      <Name>GITHUB_BRANCH</Name>
+      <n>GITHUB_BRANCH</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value/>
-      <Name>GITHUB_DEPLOY_KEY</Name>
+      <n>PROJECT_PATH</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>60</Value>
-      <Name>POLL_INTERVAL</Name>
+      <n>POLL_INTERVAL</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>deploy.sh</Value>
-      <Name>BUILD_SCRIPT</Name>
+      <n>BUILD_SCRIPT</n>
       <Mode/>
     </Variable>
     <Variable>
       <Value>true</Value>
-      <Name>ENABLE_AUTO_BUILD</Name>
+      <n>ENABLE_AUTO_BUILD</n>
       <Mode/>
     </Variable>
   </Environment>
@@ -153,14 +148,10 @@
   <Config Name="SQL Log Volume" Target="/var/opt/mssql/log" Default="/mnt/user/appdata/dotnet-mssql-docker/log" Mode="rw" Description="Volume for SQL Server log files" Type="Path" Display="always" Required="true" Mask="false"/>
   <Config Name="SQL Backup Volume" Target="/var/opt/mssql/backup" Default="/mnt/user/appdata/dotnet-mssql-docker/backup" Mode="rw" Description="Volume for SQL Server backup files" Type="Path" Display="always" Required="true" Mask="false"/>
   <Config Name="Init Scripts Volume" Target="/docker-entrypoint-initdb.d" Default="/mnt/user/appdata/dotnet-mssql-docker/init-scripts" Mode="ro" Description="Volume for SQL initialization scripts" Type="Path" Display="always" Required="false" Mask="false"/>
+  <Config Name="Secrets Volume (Private Repos)" Target="/secrets" Default="" Mode="ro" Description="Volume for SSH deploy keys (only needed for private repositories)" Type="Path" Display="always" Required="false" Mask="false"/>
   <Config Name="SA Password" Target="SA_PASSWORD" Default="" Mode="" Description="SQL Server SA user password (minimum 8 characters, required)" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Accept EULA" Target="ACCEPT_EULA" Default="Y" Mode="" Description="Accept SQL Server EULA" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="SQL Server Edition" Target="MSSQL_PID" Default="Express" Mode="" Description="SQL Server edition (Express, Developer, Standard, Enterprise)" Type="Variable" Display="always" Required="true" Mask="false"/>
-  <Config Name="DOTNET Environment" Target="DOTNET_ENVIRONMENT" Default="Production" Mode="" Description=".NET application environment" Type="Variable" Display="always" Required="true" Mask="false">
-    <Option>Production</Option>
-    <Option>Test</Option>
-    <Option>Development</Option>
-  </Config>
   <Config Name="ASP.NET Core Environment" Target="ASPNETCORE_ENVIRONMENT" Default="Production" Mode="" Description="ASP.NET Core environment" Type="Variable" Display="always" Required="true" Mask="false">
     <Option>Production</Option>
     <Option>Test</Option>
@@ -170,10 +161,10 @@
   <Config Name="Connection String" Target="ConnectionStrings__DefaultConnection" Default="Server=localhost;Database=YourDatabase;User Id=sa;Password=SET_SA_PASSWORD_ABOVE;TrustServerCertificate=true;" Mode="" Description="Default database connection string (update password to match SA_PASSWORD)" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="Custom Variable 1" Target="CUSTOM_VAR_1" Default="" Mode="" Description="Custom environment variable for your application" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Custom Variable 2" Target="CUSTOM_VAR_2" Default="" Mode="" Description="Custom environment variable for your application" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Enable CI/CD" Target="ENABLE_CI_CD" Default="false" Mode="" Description="Enable automatic deployment from GitHub" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Enable CI/CD" Target="ENABLE_CI_CD" Default="false" Mode="" Description="Enable automatic deployment from GitHub (works with public repos without authentication)" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="GitHub Repository" Target="GITHUB_REPO" Default="" Mode="" Description="GitHub repository in format: owner/repo" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="GitHub Branch" Target="GITHUB_BRANCH" Default="main" Mode="" Description="GitHub branch to monitor for changes" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="GitHub Deploy Key" Target="GITHUB_DEPLOY_KEY" Default="" Mode="" Description="GitHub deploy key (SSH private key) for repository access" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Project Path" Target="PROJECT_PATH" Default="" Mode="" Description="Path to .csproj or .sln file in repository (e.g., src/MyApp/MyApp.csproj) - optional for monorepos" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Poll Interval" Target="POLL_INTERVAL" Default="60" Mode="" Description="Interval in seconds to check for repository updates" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Build Script" Target="BUILD_SCRIPT" Default="deploy.sh" Mode="" Description="Build script to run after code update" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Enable Auto Build" Target="ENABLE_AUTO_BUILD" Default="true" Mode="" Description="Enable automatic build after code update" Type="Variable" Display="always" Required="false" Mask="false"/>

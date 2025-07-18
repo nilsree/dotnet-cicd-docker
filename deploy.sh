@@ -9,13 +9,38 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Starting deployment script"
 # Navigate to application directory
 cd /app
 
+# Determine project file to use
+PROJECT_FILE=""
+if [ -n "$PROJECT_PATH" ]; then
+    # Use specified project path
+    if [ -f "$PROJECT_PATH" ]; then
+        PROJECT_FILE="$PROJECT_PATH"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Using specified project: $PROJECT_FILE"
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: ERROR: Specified project not found: $PROJECT_PATH"
+        exit 1
+    fi
+else
+    # Auto-detect project file
+    if ls *.sln 1> /dev/null 2>&1; then
+        PROJECT_FILE="$(ls *.sln | head -n1)"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Auto-detected solution: $PROJECT_FILE"
+    elif ls *.csproj 1> /dev/null 2>&1; then
+        PROJECT_FILE="$(ls *.csproj | head -n1)"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Auto-detected project: $PROJECT_FILE"
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: ERROR: No .NET project or solution file found"
+        exit 1
+    fi
+fi
+
 # Check if this is a .NET application
-if [ -f "*.csproj" ] || [ -f "*.sln" ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Detected .NET application"
+if [ -n "$PROJECT_FILE" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Building .NET application: $PROJECT_FILE"
     
     # Restore NuGet packages
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Restoring NuGet packages..."
-    dotnet restore
+    dotnet restore "$PROJECT_FILE"
     
     if [ $? -ne 0 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: ERROR: Failed to restore NuGet packages"
@@ -24,7 +49,7 @@ if [ -f "*.csproj" ] || [ -f "*.sln" ]; then
     
     # Build the application
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Building application..."
-    dotnet build -c Release
+    dotnet build "$PROJECT_FILE" -c Release
     
     if [ $? -ne 0 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: ERROR: Failed to build application"
@@ -33,7 +58,7 @@ if [ -f "*.csproj" ] || [ -f "*.sln" ]; then
     
     # Publish the application
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: Publishing application..."
-    dotnet publish -c Release -o /app/publish
+    dotnet publish "$PROJECT_FILE" -c Release -o /app/publish
     
     if [ $? -ne 0 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEPLOY: ERROR: Failed to publish application"

@@ -29,6 +29,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     jq \
     openssh-client \
     ca-certificates \
+    systemd \
+    libldap-2.4-2 \
+    liblber-2.4-2 \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --batch --yes -o /usr/share/keyrings/microsoft-prod.gpg \
     && echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/20.04/prod focal main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
@@ -62,17 +65,19 @@ RUN mkdir -p /var/opt/mssql/data \
 COPY ci-cd.sh /ci-cd.sh
 COPY deploy.sh /deploy.sh
 COPY startup.sh /startup.sh
-RUN chmod +x /ci-cd.sh /deploy.sh /startup.sh
+COPY init-mssql.sh /init-mssql.sh
+RUN chmod +x /ci-cd.sh /deploy.sh /startup.sh /init-mssql.sh
 
 # Environment variables with defaults
 ENV ACCEPT_EULA=Y
 ENV MSSQL_PID=Express
 ENV CSPROJ_PATH=""
-ENV DOTNET_ENVIRONMENT=Production
+ENV ASPNETCORE_ENVIRONMENT=Production
 
 # CI/CD Environment variables (GitHub Deploy Key handled securely via volume mount)
 ENV GITHUB_REPO=""
 ENV GITHUB_BRANCH=main
+ENV PROJECT_PATH=""
 ENV POLL_INTERVAL=60
 ENV BUILD_SCRIPT=deploy.sh
 ENV ENABLE_AUTO_BUILD=true
