@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  dotnet-mssql-docker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CSPROJ_PATH: "test-examples/TestApp/TestApp.csproj"  # Example test app
+    container_name: dotnet-mssql-docker
+    environment:
+      # SQL Server configuration
+      - SA_PASSWORD=YourStrong@Passw0rd123  # CHANGE THIS PASSWORD!
+      - ACCEPT_EULA=Y
+      - MSSQL_PID=Express
+      
+      # .NET application environment variables
+      - DOTNET_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      
+      # CI/CD configuration
+      - ENABLE_CI_CD=true
+      - GITHUB_REPO=your-username/your-repo
+      - GITHUB_BRANCH=main
+      - POLL_INTERVAL=60
+      - BUILD_SCRIPT=deploy.sh
+      - ENABLE_AUTO_BUILD=true
+      
+      # Custom environment variables for your application
+      - ConnectionStrings__DefaultConnection=Server=localhost;Database=YourDatabase;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=true;  # UPDATE PASSWORD!
+      - CustomVar1=Value1
+      - CustomVar2=Value2
+      
+    ports:
+      - "80:80"      # Web application port
+      - "443:443"    # HTTPS port
+      - "1433:1433"  # SQL Server port
+      
+    volumes:
+      # SQL Server data volumes
+      - mssql-data:/var/opt/mssql/data
+      - mssql-log:/var/opt/mssql/log
+      - mssql-backup:/var/opt/mssql/backup
+      
+      # Optional: Initialization scripts
+      - ./sql-scripts:/docker-entrypoint-initdb.d
+      
+      # Optional: SSH keys for CI/CD (create secrets directory first)
+      # - ./secrets:/secrets:ro  # Uncomment and create secrets/github_deploy_key file
+      
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+volumes:
+  mssql-data:
+    driver: local
+  mssql-log:
+    driver: local
+  mssql-backup:
+    driver: local
