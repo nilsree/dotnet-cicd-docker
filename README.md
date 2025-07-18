@@ -21,24 +21,31 @@ This Docker image allows you to run a .NET application together with an MSSQL Se
 ## Architecture Support
 
 ### AMD64 (x86_64):
-- ✅ Full SQL Server integration
-- ✅ Local database with all features
+- ✅ Native SQL Server 2022 Express
+- ✅ Optimal performance
+- ✅ All features supported
 
 ### ARM64 (Apple Silicon, ARM servers):
 - ✅ .NET application runs natively
-- ⚠️ SQL Server not available (requires external database)
-- ✅ Connect to external SQL Server or Azure SQL
+- ✅ SQL Server runs via x86_64 emulation (Docker Desktop)
+- ⚠️ Slightly reduced SQL Server performance due to emulation
+- ✅ Full feature compatibility
+
+> **Note for ARM64**: SQL Server runs through x86_64 emulation on ARM64 platforms. While fully functional, there may be a performance impact. For production ARM64 deployments, consider using Azure SQL Database or an external SQL Server instance for optimal performance.
 
 ## Usage
 
 ### 1. Build Docker Image
 
 ```bash
-# Basic build
+# Basic build with example app
+./build.sh "test-examples/TestApp/TestApp.csproj" "your-app-name" "latest"
+
+# Or with your own app
 ./build.sh "YourApp/YourApp.csproj" "your-app-name" "latest"
 
 # Or manually
-docker build --build-arg CSPROJ_PATH="YourApp/YourApp.csproj" -t your-app-name .
+docker build --build-arg CSPROJ_PATH="test-examples/TestApp/TestApp.csproj" -t your-app-name .
 ```
 
 ### 2. Run with Docker Compose
@@ -55,6 +62,14 @@ docker-compose up -d
 3. Install from Apps tab
 
 ## Configuration
+
+### ARM64 Performance Considerations
+
+While this container works on ARM64 (Apple Silicon, ARM servers), SQL Server runs via x86_64 emulation:
+
+- **Development**: Works perfectly fine for development and testing
+- **Production**: Consider external SQL Server or Azure SQL for better performance
+- **Docker Desktop**: Handles emulation automatically on Apple Silicon
 
 ### Environment Variables
 
@@ -76,10 +91,11 @@ You can add your own environment variables by defining them in docker-compose.ym
 - `ENABLE_CI_CD`: Enable automatic deployment from GitHub (true/false)
 - `GITHUB_REPO`: GitHub repository in format "owner/repo"
 - `GITHUB_BRANCH`: GitHub branch to monitor for changes (default: main)
-- `GITHUB_DEPLOY_KEY`: GitHub deploy key (SSH private key) for repository access
 - `POLL_INTERVAL`: Interval in seconds to check for updates (default: 60)
 - `BUILD_SCRIPT`: Build script to run after code update (default: deploy.sh)
 - `ENABLE_AUTO_BUILD`: Enable automatic build after code update (true/false)
+
+> **Security Note**: GitHub Deploy Key is provided via volume mount at `/secrets/github_deploy_key`, not environment variables for better security.
 
 ### Volumes
 

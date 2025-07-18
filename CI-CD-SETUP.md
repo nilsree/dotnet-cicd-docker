@@ -26,18 +26,31 @@ For secure repository access you need a GitHub Deploy Key:
 
 3. Use private key in container:
    - Copy content from `~/.ssh/github_deploy_key` (private key)
-   - Use this as the `GITHUB_DEPLOY_KEY` environment variable
+   - Mount as volume at `/secrets/github_deploy_key` or use environment variable
 
 ### 3. Repository structure
 ```
 your-repo/
-├── YourApp/
+├── YourApp/                    # Your .NET application folder
 │   ├── YourApp.csproj
 │   ├── Program.cs
 │   └── ...
-├── deploy.sh (optional)
-├── sql-scripts/
+├── deploy.sh (optional)        # Custom build script
+├── sql-scripts/               # Database initialization
 │   └── migrations.sql
+```
+
+**Example with test app:**
+```
+dotnet-mssql-docker/
+├── test-examples/
+│   └── TestApp/
+│       ├── TestApp.csproj
+│       ├── Program.cs
+│       └── Controllers/
+├── deploy.sh
+└── sql-scripts/
+```
 └── README.md
 ```
 
