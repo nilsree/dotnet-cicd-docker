@@ -133,11 +133,17 @@ docker-hub-description nilsree/dotnet-mssql-docker README.md
 4. **Check Docker Hub** to verify the image was pushed successfully
 
 The workflow is now ready for production use! 🚀
+
+### **Usage Examples**
+
+Using specific version:
+```yaml
+services:
   app:
     image: nilsree/dotnet-mssql-docker:1.0.0
 ```
 
-### **Using major version:**
+Using major version:
 ```yaml
 services:
   app:
