@@ -4,9 +4,9 @@
 
 ### 1. Prepare your repository
 Make sure your .NET repository has:
-- `.csproj` or `.sln` file in root
+- `.csproj` or `.sln` file in root or specify path with PROJECT_PATH
 - `deploy.sh` script (optional, default script is used if not present)
-- Any database migration scripts
+- Any database migration scripts (if using external database)
 
 ### 2. GitHub Deploy Key (Only for Private Repositories)
 For **private repositories** you need a GitHub Deploy Key. **Public repositories work without any authentication.**
@@ -41,8 +41,7 @@ your-repo/
 │   ├── Program.cs
 │   └── ...
 ├── deploy.sh (optional)        # Custom build script
-├── sql-scripts/               # Database initialization
-│   └── migrations.sql
+└── README.md
 ```
 
 **Example with test app:**
@@ -54,7 +53,6 @@ dotnet-cicd-docker/
 │       ├── Program.cs
 │       └── Controllers/
 ├── deploy.sh
-└── sql-scripts/
 └── README.md
 ```
 
@@ -69,30 +67,6 @@ my-company-monorepo/
 ├── frontend/
 ├── mobile/
 └── deploy.sh
-```
-```
-your-repo/
-├── YourApp/                    # Your .NET application folder
-│   ├── YourApp.csproj
-│   ├── Program.cs
-│   └── ...
-├── deploy.sh (optional)        # Custom build script
-├── sql-scripts/               # Database initialization
-│   └── migrations.sql
-```
-
-**Example with test app:**
-```
-dotnet-cicd-docker/
-├── test-examples/
-│   └── TestApp/
-│       ├── TestApp.csproj
-│       ├── Program.cs
-│       └── Controllers/
-├── deploy.sh
-└── sql-scripts/
-```
-└── README.md
 ```
 
 ## Docker Compose Example
@@ -113,14 +87,15 @@ services:
       - BUILD_SCRIPT=deploy.sh
       - ENABLE_AUTO_BUILD=true
       
-      # Database
-      - SA_PASSWORD=YourStrong@Passw0rd123
-      - ConnectionStrings__DefaultConnection=Server=localhost;Database=YourApp;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=true;
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=your-external-db;Database=YourApp;User Id=username;Password=password;TrustServerCertificate=true;
     volumes:
-      - ./data:/var/opt/mssql/data
+      - ./data:/app/data
     ports:
-      - "8080:80"
-      - "1433:1433"
+      - "8080:8080"
+      - "8443:443"
 ```
 
 ### For Private Repository:
@@ -139,15 +114,16 @@ services:
       - BUILD_SCRIPT=deploy.sh
       - ENABLE_AUTO_BUILD=true
       
-      # Database
-      - SA_PASSWORD=YourStrong@Passw0rd123
-      - ConnectionStrings__DefaultConnection=Server=localhost;Database=YourApp;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=true;
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=your-external-db;Database=YourApp;User Id=username;Password=password;TrustServerCertificate=true;
     volumes:
-      - ./data:/var/opt/mssql/data
+      - ./data:/app/data
       - ./secrets:/secrets:ro  # SSH deploy key for private repos
     ports:
-      - "8080:80"
-      - "1433:1433"
+      - "8080:8080"
+      - "8443:443"
 ```
 
 ## Unraid Setup
@@ -230,8 +206,8 @@ dotnet publish -c Release -o /app/publish
 # Copy published files
 cp -r /app/publish/* /app/
 
-# Run database migrations
-dotnet ef database update
+# Run database migrations (if using Entity Framework)
+# dotnet ef database update
 
 echo "Build completed successfully"
 ```
@@ -244,10 +220,11 @@ echo "Build completed successfully"
 - Don't share private keys in logs or code
 - Store private keys securely
 
-### Database
+### External Database
 - Use strong passwords
-- Consider SQL Server authentication
+- Consider secure authentication methods
 - Limit network access
+- Use connection string encryption
 
 ### Container security
 - Run as non-root user if possible
@@ -274,8 +251,26 @@ docker exec -it container-name cat /app/deploy.sh
 docker exec -it container-name /app/deploy.sh
 ```
 
-### Database issues
+### Common Issues
+
+#### Repository Access Error
+If you see "ERROR: Could not access repository":
+
+1. **For Private Repositories**: 
+   - Ensure SSH deploy key is properly mounted at `/secrets/github_deploy_key`
+   - Verify the deploy key is added to your GitHub repository
+   - Check key permissions: `chmod 600 /secrets/github_deploy_key`
+
+2. **For Public Repositories**:
+   - Verify the repository URL format: `owner/repo` (no https:// prefix)
+   - Check if repository exists and is public
+   - Ensure GITHUB_REPO environment variable is set correctly
+
+#### Container Connection Issues
 ```bash
-# Check SQL Server status
-docker exec -it container-name /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "PASSWORD" -C -Q "SELECT @@VERSION"
+# Check if container is listening on correct port
+docker exec -it container-name netstat -tlnp | grep :8080
+
+# Test HTTP endpoint
+curl http://localhost:8080
 ```
