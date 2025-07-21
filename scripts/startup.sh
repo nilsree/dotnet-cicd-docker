@@ -57,7 +57,28 @@ start_dotnet_app() {
     
     if [ -z "$APP_DLL" ]; then
         echo "ERROR: Could not find application DLL"
-        exit 1
+        
+        # If CI/CD is enabled, wait for it to potentially download an app
+        if [ "$ENABLE_CI_CD" = "true" ] && [ -n "$GITHUB_REPO" ]; then
+            echo "Waiting for CI/CD to download application..."
+            # Wait up to 120 seconds for CI/CD to provide an app
+            for i in $(seq 1 120); do
+                sleep 1
+                APP_DLL=$(find_app_dll)
+                if [ -n "$APP_DLL" ]; then
+                    echo "Application found after CI/CD download: $APP_DLL"
+                    break
+                fi
+                if [ $((i % 30)) -eq 0 ]; then
+                    echo "Still waiting for CI/CD... ($i/120 seconds)"
+                fi
+            done
+        fi
+        
+        if [ -z "$APP_DLL" ]; then
+            echo "ERROR: No application available after waiting"
+            exit 1
+        fi
     fi
     
     echo "Starting .NET application: $APP_DLL"
