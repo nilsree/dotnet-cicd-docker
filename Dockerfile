@@ -15,8 +15,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy application source code
-COPY . .
+# Copy and build TestApp as fallback
+COPY test-examples/TestApp/ ./TestApp/
+RUN cd TestApp && dotnet build -c Release && dotnet publish -c Release -o ../
 
 # Copy CI/CD and deployment scripts
 COPY scripts/ci-cd.sh /ci-cd.sh
