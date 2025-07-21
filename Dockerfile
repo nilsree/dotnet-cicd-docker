@@ -32,9 +32,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 COPY --from=build /app/publish .
 
 # Copy CI/CD and deployment scripts
-COPY ci-cd.sh /ci-cd.sh
-COPY deploy.sh /deploy.sh
-COPY startup.sh /startup.sh
+COPY scripts/ci-cd.sh /ci-cd.sh
+COPY scripts/deploy.sh /deploy.sh
+COPY scripts/startup.sh /startup.sh
 RUN chmod +x /ci-cd.sh /deploy.sh /startup.sh
 
 # Environment variables with defaults

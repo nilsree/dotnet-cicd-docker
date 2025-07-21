@@ -1,239 +1,158 @@
-# .NET GitHub CI/CD Docker Image for Unraid
+# .NET CI/CD Docker Container
 
-**Repository:** `nilsree/dotnet-cicd-docker`
+[![Docker Hub](https://img.shields.io/docker/pulls/nilsree/dotnet-cicd-docker)](https://hub.docker.com/r/nilsree/dotnet-cicd-docker)
+[![GitHub Release](https://img.shields.io/github/release/nilsree/dotnet-cicd-docker)](https://github.com/nilsree/dotnet-cicd-docker/releases)
+[![Build Status](https://github.com/nilsree/dotnet-cicd-docker/workflows/Build%20and%20Push%20Docker%20Image/badge.svg)](https://github.com/nilsree/dotnet-cicd-docker/actions)
 
-This Docker image provides a streamlined solution for running .NET applications with GitHub CI/CD integration, optimized for Unraid and container environments.
+A lightweight Docker container that automatically builds and deploys .NET applications from GitHub repositories. Perfect for Unraid, Portainer, or any Docker environment.
 
-## Features
+## ✨ Features
 
-- ✅ Runs .NET applications (supports .NET 6, 7, 8, 9)
-- ✅ **GitHub CI/CD integration with automatic deployment**
-- ✅ **Monorepo support with PROJECT_PATH**
-- ✅ Multi-architecture support (linux/amd64, linux/arm64)
-- ✅ Configurable .csproj path via build argument
-- ✅ Secure SSH Deploy Key handling via volume mounts
-- ✅ **Automatic build and restart on GitHub changes**
-- ✅ **Configurable polling intervals and build scripts**
-- ✅ Unraid template included
-- ✅ Professional English documentation
-- ✅ Safe shutdown of all services
+- **🚀 Automatic GitHub CI/CD**: Polls your repository and auto-deploys on changes
+- **🔄 Smart Build Detection**: Automatically detects `.csproj` and `.sln` files
+- **🔐 Private Repository Support**: SSH deploy keys for private GitHub repos
+- **📦 Multi-Architecture**: Supports both AMD64 and ARM64 platforms
+- **⚙️ Monorepo Friendly**: `PROJECT_PATH` support for complex repository structures
+- **🛡️ Secure**: No hardcoded credentials, uses volume-mounted SSH keys
 
-## Use Cases
+## 🚀 Quick Start
 
-### Standalone .NET Applications:
-- ✅ Web APIs and services
-- ✅ Background services and workers
-- ✅ Console applications with web interfaces
-
-### CI/CD Integration:
-- ✅ Automatic deployment from GitHub
-- ✅ Development and staging environments
-- ✅ Rapid prototyping and testing
-## Usage
-
-### 1. Build Docker Image
-
-```bash
-# Basic build with example app
-./build.sh "test-examples/TestApp/TestApp.csproj" "your-app-name" "latest"
-
-# Or with your own app
-./build.sh "YourApp/YourApp.csproj" "your-app-name" "latest"
-
-# Or manually
-docker build --build-arg CSPROJ_PATH="test-examples/TestApp/TestApp.csproj" -t your-app-name .
+### Docker Compose (Public Repository)
+```yaml
+version: '3.8'
+services:
+  app:
+    image: nilsree/dotnet-cicd-docker
+    environment:
+      - ENABLE_CI_CD=true
+      - GITHUB_REPO=your-username/your-repo
+      - GITHUB_BRANCH=main
+      - POLL_INTERVAL=60
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
 ```
 
-### 2. Run with Docker Compose
-
-```bash
-# Edit docker-compose.yml first
-docker-compose up -d
+### Docker Compose (Private Repository)
+```yaml
+version: '3.8'
+services:
+  app:
+    image: nilsree/dotnet-cicd-docker
+    environment:
+      - ENABLE_CI_CD=true
+      - GITHUB_REPO=your-username/your-private-repo
+      - GITHUB_BRANCH=main
+      - POLL_INTERVAL=60
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./secrets:/secrets:ro  # SSH deploy key
 ```
 
-### 3. Install on Unraid
+## 📖 Documentation
 
-1. Copy `unraid-template.xml` to your Unraid Community Applications template folder
-2. Or add template URL to Community Applications
-3. Install from Apps tab
+- **[CI/CD Setup Guide](docs/CI-CD-SETUP.md)** - Complete setup instructions
+- **[GitHub Actions Setup](docs/GITHUB-ACTIONS-SETUP.md)** - Docker Hub publishing automation
+- **[.NET Version Info](docs/DOTNET-VERSION.md)** - .NET version details
+- **[Testing Guide](docs/TESTING-GUIDE.md)** - How to test the container
+- **[Unraid Template](templates/unraid-template.xml)** - Ready-to-use Unraid template
 
-## Configuration
+## 📁 Repository Structure
 
-### Environment Variables
-
-#### .NET Application
-- `ASPNETCORE_ENVIRONMENT`: ASP.NET Core environment (Production, Test, Development)
-- `ASPNETCORE_URLS`: Listening URLs
-- `ConnectionStrings__DefaultConnection`: Database connection string (if using external database)
-
-#### Custom Variables
-You can add your own environment variables by defining them in docker-compose.yml or Unraid template.
-
-#### CI/CD Configuration
-- `ENABLE_CI_CD`: Enable automatic deployment from GitHub (true/false)
-- `GITHUB_REPO`: GitHub repository in format "owner/repo"
-- `GITHUB_BRANCH`: GitHub branch to monitor for changes (default: main)
-- `PROJECT_PATH`: Path to .csproj or .sln file in repository (optional, auto-detects if not specified)
-- `POLL_INTERVAL`: Interval in seconds to check for updates (default: 60)
-- `BUILD_SCRIPT`: Build script to run after code update (default: deploy.sh)
-- `ENABLE_AUTO_BUILD`: Enable automatic build after code update (true/false)
-
-> **Security Note**: GitHub Deploy Key is provided via volume mount at `/secrets/github_deploy_key`, not environment variables for better security.
-
-### Volumes
-
-- `/app/data`: Application data directory
-- `/secrets/github_deploy_key`: SSH Deploy Key for GitHub access (read-only)
-
-### Ports
-
-- `80`: HTTP web application
-- `443`: HTTPS web application
-
-## CI/CD and Automatic Deployment
-
-The container supports automatic deployment from GitHub repositories:
-
-### Setup
-1. Set `ENABLE_CI_CD=true`
-2. Configure `GITHUB_REPO` to your repository (format: "owner/repo")
-3. Set `GITHUB_BRANCH` to desired branch (default: main)
-4. **For monorepos**: Set `PROJECT_PATH` to specific project file (e.g., `src/WebApi/WebApi.csproj`)
-5. **For private repositories only**: Mount SSH deploy key at `/secrets/github_deploy_key`
-6. Adjust `POLL_INTERVAL` for how often to check for updates
-
-> **Note**: Public repositories work without any authentication. SSH deploy keys are only needed for private repositories.
-
-### Monorepo Support
-The container can work with monorepos by specifying the exact project to build:
-
-```bash
-# Example: Public repository (no authentication needed)
-GITHUB_REPO=mycompany/public-monorepo
-PROJECT_PATH=backend/webapi/WebApi.csproj
-
-# Example: Private repository (requires SSH deploy key)
-GITHUB_REPO=mycompany/private-monorepo
-PROJECT_PATH=backend/webapi/WebApi.csproj
-# + volume mount: ./secrets:/secrets:ro
+```
+.
+├── README.md                    # Project overview and quick start
+├── LICENSE                      # MIT license
+├── Dockerfile                   # Container definition
+├── docs/                       # 📚 All documentation
+│   ├── CI-CD-SETUP.md          # Detailed setup guide
+│   ├── GITHUB-ACTIONS-SETUP.md # Docker Hub publishing
+│   ├── DOTNET-VERSION.md       # .NET version information
+│   └── TESTING-GUIDE.md        # Testing instructions
+├── scripts/                    # 🔧 All container scripts
+│   ├── startup.sh              # Container entrypoint
+│   ├── ci-cd.sh               # CI/CD automation
+│   ├── deploy.sh              # Default build script
+│   └── build.sh               # Development build script
+├── templates/                  # 📋 Templates and examples
+│   ├── unraid-template.xml    # Unraid Community Apps
+│   ├── docker-compose.yml     # Docker Compose example
+│   └── .env.example          # Environment variables example
+├── test-examples/              # 🧪 Example applications
+│   └── TestApp/               # Sample .NET app for testing
+└── .github/workflows/         # ⚙️ GitHub Actions
+    └── docker-publish.yml     # Automated Docker building
 ```
 
-If `PROJECT_PATH` is not specified, the container will auto-detect the first `.sln` or `.csproj` file in the repository root.
+## ⚙️ Environment Variables
 
-### Build Script
-The container will run `deploy.sh` (or script defined in `BUILD_SCRIPT`) after each update.
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ENABLE_CI_CD` | Enable automatic deployment | `false` | No |
+| `GITHUB_REPO` | Repository (format: `owner/repo`) | - | Yes |
+| `GITHUB_BRANCH` | Git branch to monitor | `main` | No |
+| `PROJECT_PATH` | Path to .csproj/.sln in monorepos | - | No |
+| `POLL_INTERVAL` | Check interval in seconds | `60` | No |
+| `BUILD_SCRIPT` | Custom build script name | `deploy.sh` | No |
+| `ENABLE_AUTO_BUILD` | Enable automatic building | `true` | No |
+| `ASPNETCORE_URLS` | ASP.NET Core URLs | `http://+:8080` | No |
 
-Standard `deploy.sh` performs:
-- `dotnet restore`
-- `dotnet build -c Release`
-- `dotnet publish -c Release`
-- Entity Framework migrations (if available)
+## 🔧 Advanced Usage
 
-### Customize Build Script
-You can customize the build process by:
-1. Modifying `deploy.sh` in repository
-2. Or specify custom script with `BUILD_SCRIPT` variable
-
+### Monorepo Projects
 ```bash
-# Example of custom build script
+# For projects in subdirectories
+PROJECT_PATH=src/MyApp/MyApp.csproj
+```
+
+### Custom Build Scripts
+Create a `deploy.sh` in your repository root:
+```bash
 #!/bin/bash
 echo "Custom build process"
 dotnet restore
 dotnet build -c Release
-# Custom build steps here
+dotnet publish -c Release -o /app/publish
+cp -r /app/publish/* /app/
 ```
 
-## Security
+### Private Repository Setup
+1. Generate SSH deploy key: `ssh-keygen -t ed25519 -f deploy_key`
+2. Add public key to GitHub repository → Settings → Deploy keys
+3. Mount private key: `/path/to/deploy_key:/secrets/github_deploy_key:ro`
 
-- **GitHub Deploy Keys**: Store SSH keys securely via volume mounts, not environment variables
-- **Environment Variables**: Use Docker secrets or secure volume mounts for sensitive configuration
-- **Network Security**: Limit container network access as needed
-- **Regular Updates**: Keep base images and dependencies updated
+## 🏠 Unraid Integration
 
-## .NET Version
+1. Install from Community Applications
+2. Or manually add template URL: `https://raw.githubusercontent.com/nilsree/dotnet-cicd-docker/main/templates/unraid-template.xml`
 
-The container uses .NET 9.0 by default. To upgrade to newer versions, see `DOTNET-VERSION.md` for instructions.
+## 🤝 Contributing
 
-## Troubleshooting
+1. Fork the repository
+2. Create feature branch
+3. Make changes
+4. Test with example app
+5. Submit pull request
 
-### Container logs
-```bash
-docker logs -f your-container-name
-```
+## 📋 Requirements
 
-### Connect to Application
-```bash
-```bash
-curl http://localhost:8080/
-```
+- Docker or compatible runtime
+- .NET project with `.csproj` or `.sln` file
+- GitHub repository (public or private with deploy key)
 
-### Debug CI/CD process
-```bash
-docker exec -it your-container-name /ci-cd.sh
-```
+## 🐛 Troubleshooting
 
-## Unraid Specific Info
+Common issues and solutions in [docs/CI-CD-SETUP.md](docs/CI-CD-SETUP.md#troubleshooting)
 
-### Recommended mappings
-- Host: `/mnt/user/appdata/dotnet-cicd-docker/data` → Container: `/app/data`
-- Host: `/mnt/user/appdata/dotnet-cicd-docker/secrets` → Container: `/secrets`
+## 📄 License
 
-### Resources
-- Minimum RAM: 512MB
-- Recommended RAM: 1-2GB
-- CPU: 1 core
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## Development
+## 🙏 Acknowledgments
 
-To develop and test:
-
-1. Clone repository
-2. Place your .NET application in a subfolder
-3. Update CSPROJ_PATH in build.sh
-4. Build and test locally
-5. Deploy to Unraid
-```
-
-### Check CI/CD status
-```bash
-docker logs -f your-container-name | grep "CD:"
-```
-
-### Manual deployment trigger
-```bash
-docker exec -it your-container-name /ci-cd.sh
-```
-
-## Unraid Specific Info
-
-### Recommended mappings
-- Host: `/mnt/user/appdata/dotnet-cicd-docker/data` → Container: `/var/opt/mssql/data`
-- Host: `/mnt/user/appdata/dotnet-cicd-docker/log` → Container: `/var/opt/mssql/log`
-- Host: `/mnt/user/appdata/dotnet-cicd-docker/backup` → Container: `/var/opt/mssql/backup`
-
-### Resources
-- Minimum RAM: 1GB
-- Recommended RAM: 2-4GB
-- CPU: 1-2 cores
-
-## Development
-
-To develop and test:
-
-1. Clone repository
-2. Place your .NET application in a subfolder
-3. Update CSPROJ_PATH in build.sh
-4. Build and test locally
-5. Deploy to Unraid
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Contributing
-
-Pull requests and issues are welcome! Follow standard GitHub workflow.
-
-## Support
-
-For support, create an issue in the GitHub repository or visit Unraid community forums.
+- Built for the Unraid community
+- Inspired by GitOps principles
+- Uses semantic versioning
