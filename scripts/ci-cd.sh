@@ -42,6 +42,14 @@ EOF
         chmod 600 ~/.ssh/config
         
         log "SSH key configured for GitHub access"
+        
+        # Test SSH connection
+        if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+            log "SSH connection to GitHub verified"
+        else
+            log "WARNING: SSH connection test failed"
+        fi
+        
         return 0
     else
         log "No SSH key file found at $SSH_KEY_FILE, attempting public repository access"
@@ -100,17 +108,19 @@ download_repo() {
     # Try SSH access first
     if [ -f "$SSH_KEY_FILE" ]; then
         log "Attempting SSH clone"
-        if git clone --depth 1 --branch "$branch" "$ssh_url" repo 2>/dev/null; then
+        if git clone --depth 1 --branch "$branch" "$ssh_url" repo; then
             log "SSH clone successful"
             cp -r repo/* "$dest/"
             rm -rf "$TEMP_DIR"  # Clean up temp directory
             return 0
+        else
+            log "SSH clone failed with exit code $?"
         fi
     fi
     
     # Fallback to HTTPS for public repositories
     log "Attempting HTTPS clone"
-    if git clone --depth 1 --branch "$branch" "$https_url" repo 2>/dev/null; then
+    if git clone --depth 1 --branch "$branch" "$https_url" repo; then
         log "HTTPS clone successful"
         cp -r repo/* "$dest/"
         rm -rf "$TEMP_DIR"  # Clean up temp directory
