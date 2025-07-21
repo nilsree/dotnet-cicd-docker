@@ -1,20 +1,7 @@
-# Multi-stage Dockerfile for .NET Application with GitHub CI/CD
+# Single-stage Dockerfile for .NET Application with GitHub CI/CD
 
-# .NET Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-ARG CSPROJ_PATH=test-examples/TestApp/TestApp.csproj
-
-# Copy project file and restore dependencies
-COPY ${CSPROJ_PATH} ./TestApp/TestApp.csproj
-RUN dotnet restore ./TestApp/TestApp.csproj
-
-# Copy source code and build
-COPY . .
-RUN dotnet publish ${CSPROJ_PATH} -c Release -o /app/publish
-
-# Final runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
+# .NET SDK stage with CI/CD capabilities
+FROM mcr.microsoft.com/dotnet/sdk:9.0
 WORKDIR /app
 
 # Install dependencies for CI/CD functionality
@@ -28,8 +15,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy published app
-COPY --from=build /app/publish .
+# Copy application source code
+COPY . .
 
 # Copy CI/CD and deployment scripts
 COPY scripts/ci-cd.sh /ci-cd.sh
