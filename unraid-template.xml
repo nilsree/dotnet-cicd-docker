@@ -1,32 +1,32 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <n>DotNet-MSSQL-Docker</n>
-  <Repository>nilsree/dotnet-mssql-docker</Repository>
+  <n>DotNet-CICD-Docker</n>
+  <Repository>nilsree/dotnet-cicd-docker</Repository>
   <Registry>https://hub.docker.com/</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/nilsree/dotnet-mssql-docker</Support>
-  <Project>https://github.com/nilsree/dotnet-mssql-docker</Project>
-  <Overview>Docker container that runs a .NET application with MSSQL Server database. Perfect for hosting .NET web applications with integrated database on Unraid.</Overview>
+  <Support>https://github.com/nilsree/dotnet-cicd-docker</Support>
+  <Project>https://github.com/nilsree/dotnet-cicd-docker</Project>
+  <Overview>Docker container that runs .NET applications with GitHub CI/CD integration. Perfect for hosting .NET web applications with automatic deployment from GitHub on Unraid.</Overview>
   <Category>Productivity:</Category>
-  <WebUI>http://[IP]:[PORT:80]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/nilsree/dotnet-mssql-docker/main/unraid-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/nilsree/dotnet-mssql-docker/main/icon.png</Icon>
+  <WebUI>http://[IP]:[PORT:8080]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/nilsree/dotnet-cicd-docker/main/unraid-template.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/nilsree/dotnet-cicd-docker/main/icon.png</Icon>
   <ExtraParams>--restart=unless-stopped</ExtraParams>
   <PostArgs/>
   <CPUset/>
   <DateInstalled>1642464000</DateInstalled>
   <DonateText/>
   <DonateLink/>
-  <Description>Docker container that runs a .NET application with MSSQL Server database. Perfect for hosting .NET web applications with integrated database on Unraid.</Description>
+  <Description>Docker container that runs .NET applications with GitHub CI/CD integration. Perfect for hosting .NET web applications with automatic deployment from GitHub on Unraid.</Description>
   <Networking>
     <Mode>bridge</Mode>
     <Publish>
       <Port>
         <HostPort>8080</HostPort>
-        <ContainerPort>80</ContainerPort>
+        <ContainerPort>8080</ContainerPort>
         <Protocol>tcp</Protocol>
       </Port>
       <Port>
@@ -34,63 +34,33 @@
         <ContainerPort>443</ContainerPort>
         <Protocol>tcp</Protocol>
       </Port>
-      <Port>
-        <HostPort>1433</HostPort>
-        <ContainerPort>1433</ContainerPort>
-        <Protocol>tcp</Protocol>
-      </Port>
     </Publish>
   </Networking>
   <Data>
     <Volume>
-      <HostDir>/mnt/user/appdata/dotnet-mssql-docker/data</HostDir>
-      <ContainerDir>/var/opt/mssql/data</ContainerDir>
+      <HostDir>/mnt/user/appdata/dotnet-cicd-docker/data</HostDir>
+      <ContainerDir>/app/data</ContainerDir>
       <Mode>rw</Mode>
     </Volume>
     <Volume>
-      <HostDir>/mnt/user/appdata/dotnet-mssql-docker/log</HostDir>
-      <ContainerDir>/var/opt/mssql/log</ContainerDir>
-      <Mode>rw</Mode>
-    </Volume>
-    <Volume>
-      <HostDir>/mnt/user/appdata/dotnet-mssql-docker/backup</HostDir>
-      <ContainerDir>/var/opt/mssql/backup</ContainerDir>
-      <Mode>rw</Mode>
-    </Volume>
-    <Volume>
-      <HostDir>/mnt/user/appdata/dotnet-mssql-docker/init-scripts</HostDir>
-      <ContainerDir>/docker-entrypoint-initdb.d</ContainerDir>
+      <HostDir>/mnt/user/appdata/dotnet-cicd-docker/secrets</HostDir>
+      <ContainerDir>/secrets</ContainerDir>
       <Mode>ro</Mode>
     </Volume>
   </Data>
   <Environment>
-    <Variable>
-      <Value>YourStrong@Passw0rd123</Value>
-      <n>SA_PASSWORD</n>
-      <Mode/>
-    </Variable>
-    <Variable>
-      <Value>Y</Value>
-      <n>ACCEPT_EULA</n>
-      <Mode/>
-    </Variable>
-    <Variable>
-      <Value>Express</Value>
-      <n>MSSQL_PID</n>
-      <Mode/>
-    </Variable>
     <Variable>
       <Value>Production</Value>
       <n>ASPNETCORE_ENVIRONMENT</n>
       <Mode/>
     </Variable>
     <Variable>
-      <Value>http://+:80</Value>
+      <Value>http://+:8080</Value>
       <n>ASPNETCORE_URLS</n>
       <Mode/>
     </Variable>
     <Variable>
-      <Value>Server=localhost;Database=YourDatabase;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=true;</Value>
+      <Value/>
       <n>ConnectionStrings__DefaultConnection</n>
       <Mode/>
     </Variable>
@@ -141,24 +111,17 @@
     </Variable>
   </Environment>
   <Labels/>
-  <Config Name="Web UI Port" Target="80" Default="8080" Mode="tcp" Description="Port for accessing the web application" Type="Port" Display="always" Required="false" Mask="false"/>
+  <Config Name="Web UI Port" Target="8080" Default="8080" Mode="tcp" Description="Port for accessing the web application" Type="Port" Display="always" Required="false" Mask="false"/>
   <Config Name="HTTPS Port" Target="443" Default="8443" Mode="tcp" Description="HTTPS port for the web application" Type="Port" Display="always" Required="false" Mask="false"/>
-  <Config Name="SQL Server Port" Target="1433" Default="1433" Mode="tcp" Description="SQL Server database port" Type="Port" Display="always" Required="false" Mask="false"/>
-  <Config Name="SQL Data Volume" Target="/var/opt/mssql/data" Default="/mnt/user/appdata/dotnet-mssql-docker/data" Mode="rw" Description="Volume for SQL Server data files" Type="Path" Display="always" Required="true" Mask="false"/>
-  <Config Name="SQL Log Volume" Target="/var/opt/mssql/log" Default="/mnt/user/appdata/dotnet-mssql-docker/log" Mode="rw" Description="Volume for SQL Server log files" Type="Path" Display="always" Required="true" Mask="false"/>
-  <Config Name="SQL Backup Volume" Target="/var/opt/mssql/backup" Default="/mnt/user/appdata/dotnet-mssql-docker/backup" Mode="rw" Description="Volume for SQL Server backup files" Type="Path" Display="always" Required="true" Mask="false"/>
-  <Config Name="Init Scripts Volume" Target="/docker-entrypoint-initdb.d" Default="/mnt/user/appdata/dotnet-mssql-docker/init-scripts" Mode="ro" Description="Volume for SQL initialization scripts" Type="Path" Display="always" Required="false" Mask="false"/>
-  <Config Name="Secrets Volume (Private Repos)" Target="/secrets" Default="" Mode="ro" Description="Volume for SSH deploy keys (only needed for private repositories)" Type="Path" Display="always" Required="false" Mask="false"/>
-  <Config Name="SA Password" Target="SA_PASSWORD" Default="" Mode="" Description="SQL Server SA user password (minimum 8 characters, required)" Type="Variable" Display="always" Required="true" Mask="true"/>
-  <Config Name="Accept EULA" Target="ACCEPT_EULA" Default="Y" Mode="" Description="Accept SQL Server EULA" Type="Variable" Display="always" Required="true" Mask="false"/>
-  <Config Name="SQL Server Edition" Target="MSSQL_PID" Default="Express" Mode="" Description="SQL Server edition (Express, Developer, Standard, Enterprise)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="App Data Volume" Target="/app/data" Default="/mnt/user/appdata/dotnet-cicd-docker/data" Mode="rw" Description="Volume for application data files" Type="Path" Display="always" Required="true" Mask="false"/>
+  <Config Name="Secrets Volume (Private Repos)" Target="/secrets" Default="/mnt/user/appdata/dotnet-cicd-docker/secrets" Mode="ro" Description="Volume for SSH deploy keys (only needed for private repositories)" Type="Path" Display="always" Required="false" Mask="false"/>
   <Config Name="ASP.NET Core Environment" Target="ASPNETCORE_ENVIRONMENT" Default="Production" Mode="" Description="ASP.NET Core environment" Type="Variable" Display="always" Required="true" Mask="false">
     <Option>Production</Option>
     <Option>Test</Option>
     <Option>Development</Option>
   </Config>
-  <Config Name="ASP.NET Core URLs" Target="ASPNETCORE_URLS" Default="http://+:80" Mode="" Description="ASP.NET Core listening URLs" Type="Variable" Display="always" Required="true" Mask="false"/>
-  <Config Name="Connection String" Target="ConnectionStrings__DefaultConnection" Default="Server=localhost;Database=YourDatabase;User Id=sa;Password=SET_SA_PASSWORD_ABOVE;TrustServerCertificate=true;" Mode="" Description="Default database connection string (update password to match SA_PASSWORD)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="ASP.NET Core URLs" Target="ASPNETCORE_URLS" Default="http://+:8080" Mode="" Description="ASP.NET Core listening URLs" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Connection String" Target="ConnectionStrings__DefaultConnection" Default="" Mode="" Description="Database connection string (if using external database)" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Custom Variable 1" Target="CUSTOM_VAR_1" Default="" Mode="" Description="Custom environment variable for your application" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Custom Variable 2" Target="CUSTOM_VAR_2" Default="" Mode="" Description="Custom environment variable for your application" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Enable CI/CD" Target="ENABLE_CI_CD" Default="false" Mode="" Description="Enable automatic deployment from GitHub (works with public repos without authentication)" Type="Variable" Display="always" Required="false" Mask="false"/>
