@@ -115,11 +115,7 @@
   <Config Name="HTTPS Port" Target="443" Default="8443" Mode="tcp" Description="HTTPS port for the web application" Type="Port" Display="always" Required="false" Mask="false"/>
   <Config Name="App Data Volume" Target="/app/data" Default="/mnt/user/appdata/dotnet-cicd-docker/data" Mode="rw" Description="Volume for application data files" Type="Path" Display="always" Required="true" Mask="false"/>
   <Config Name="Secrets Volume (Private Repos)" Target="/secrets" Default="/mnt/user/appdata/dotnet-cicd-docker/secrets" Mode="ro" Description="Volume for SSH deploy keys (only needed for private repositories)" Type="Path" Display="always" Required="false" Mask="false"/>
-  <Config Name="ASP.NET Core Environment" Target="ASPNETCORE_ENVIRONMENT" Default="Production" Mode="" Description="ASP.NET Core environment" Type="Variable" Display="always" Required="true" Mask="false">
-    <Option>Production</Option>
-    <Option>Test</Option>
-    <Option>Development</Option>
-  </Config>
+  <Config Name="ASP.NET Core Environment" Target="ASPNETCORE_ENVIRONMENT" Default="Production" Mode="" Description="ASP.NET Core environment" Type="Variable" Display="always" Required="true" Mask="false">Production|Test|Development</Config>
   <Config Name="ASP.NET Core URLs" Target="ASPNETCORE_URLS" Default="http://+:8080" Mode="" Description="ASP.NET Core listening URLs" Type="Variable" Display="always" Required="true" Mask="false"/>
   <Config Name="Connection String" Target="ConnectionStrings__DefaultConnection" Default="" Mode="" Description="Database connection string (if using external database)" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Custom Variable 1" Target="CUSTOM_VAR_1" Default="" Mode="" Description="Custom environment variable for your application" Type="Variable" Display="always" Required="false" Mask="false"/>
