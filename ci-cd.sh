@@ -91,7 +91,8 @@ download_repo() {
     
     log "Downloading repository $repo (branch: $branch)..."
     
-    # Create temp directory
+    # Clean and create temp directory
+    rm -rf "$TEMP_DIR"
     mkdir -p "$TEMP_DIR"
     cd "$TEMP_DIR"
     
@@ -105,6 +106,7 @@ download_repo() {
         if git clone --depth 1 --branch "$branch" "$ssh_url" repo 2>/dev/null; then
             log "SSH clone successful"
             cp -r repo/* "$dest/"
+            rm -rf "$TEMP_DIR"  # Clean up temp directory
             return 0
         fi
     fi
@@ -114,10 +116,12 @@ download_repo() {
     if git clone --depth 1 --branch "$branch" "$https_url" repo 2>/dev/null; then
         log "HTTPS clone successful"
         cp -r repo/* "$dest/"
+        rm -rf "$TEMP_DIR"  # Clean up temp directory
         return 0
     fi
     
     log "ERROR: Failed to clone repository"
+    rm -rf "$TEMP_DIR"  # Clean up temp directory even on failure
     return 1
 }
 
@@ -146,9 +150,71 @@ run_build_script() {
             return 1
         fi
     else
-        log "Build script not found: $script_path"
+        log "Build script not found: $script_path, running default build process"
+        return run_default_build
+    fi
+}
+
+# Function to run default .NET build when no deploy script exists
+run_default_build() {
+    log "Starting default .NET build process"
+    cd "$APP_DIR"
+    
+    # Determine project file to use
+    local project_file=""
+    if [ -n "$PROJECT_PATH" ]; then
+        if [ -f "$PROJECT_PATH" ]; then
+            project_file="$PROJECT_PATH"
+            log "Using specified project: $project_file"
+        else
+            log "ERROR: Specified project not found: $PROJECT_PATH"
+            return 1
+        fi
+    else
+        # Auto-detect project file
+        if ls *.sln 1> /dev/null 2>&1; then
+            project_file="$(ls *.sln | head -n1)"
+            log "Auto-detected solution: $project_file"
+        elif ls *.csproj 1> /dev/null 2>&1; then
+            project_file="$(ls *.csproj | head -n1)"
+            log "Auto-detected project: $project_file"
+        else
+            log "ERROR: No .NET project or solution file found"
+            return 1
+        fi
+    fi
+    
+    # Build the .NET application
+    log "Restoring NuGet packages..."
+    dotnet restore "$project_file"
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to restore NuGet packages"
         return 1
     fi
+    
+    log "Building application..."
+    dotnet build "$project_file" -c Release
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to build application"
+        return 1
+    fi
+    
+    log "Publishing application..."
+    dotnet publish "$project_file" -c Release -o /app/publish
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to publish application"
+        return 1
+    fi
+    
+    # Move published files to app directory
+    if [ -d "/app/publish" ]; then
+        log "Moving published files..."
+        cp -r /app/publish/* /app/
+        rm -rf /app/publish
+    fi
+    
+    log "Default build completed successfully"
+    return 0
 }
 
 # Function to restart .NET application
