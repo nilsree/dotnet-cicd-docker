@@ -16,8 +16,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and build TestApp as fallback
-COPY test-examples/TestApp/ ./TestApp/
-RUN cd TestApp && dotnet build -c Release && dotnet publish -c Release -o ../
+COPY test-examples/TestApp/ ./fallback/TestApp/
+RUN cd fallback/TestApp && dotnet build -c Release && dotnet publish -c Release -o ../publish
+RUN rm -rf fallback/TestApp && mv fallback/publish/* fallback/ && rm -rf fallback/publish
 
 # Copy CI/CD and deployment scripts
 COPY scripts/ci-cd.sh /ci-cd.sh

@@ -4,6 +4,9 @@
 find_app_dll() {
     local app_dll=""
     
+    # First check for CI/CD built applications in /app
+    cd /app
+    
     # Look for .runtimeconfig.json files which indicate the main executable
     for config_file in *.runtimeconfig.json; do
         if [ -f "$config_file" ]; then
@@ -18,7 +21,7 @@ find_app_dll() {
         fi
     done
     
-    # Fallback to finding any DLL file
+    # Fallback to finding any DLL file in /app
     if [ -z "$app_dll" ]; then
         for dll in *.dll; do
             if [ -f "$dll" ]; then
@@ -28,8 +31,35 @@ find_app_dll() {
         done
     fi
     
+    # If no CI/CD app found, use fallback TestApp
     if [ -z "$app_dll" ]; then
-        echo "ERROR: No .NET application DLL found in /app" >&2
+        cd /app/fallback
+        for config_file in *.runtimeconfig.json; do
+            if [ -f "$config_file" ]; then
+                local base_name="${config_file%.runtimeconfig.json}"
+                local dll_file="${base_name}.dll"
+                
+                if [ -f "$dll_file" ]; then
+                    app_dll="fallback/$dll_file"
+                    break
+                fi
+            fi
+        done
+        
+        if [ -z "$app_dll" ]; then
+            for dll in *.dll; do
+                if [ -f "$dll" ]; then
+                    app_dll="fallback/$dll"
+                    break
+                fi
+            done
+        fi
+    fi
+    
+    cd /app
+    
+    if [ -z "$app_dll" ]; then
+        echo "ERROR: No .NET application DLL found in /app or /app/fallback" >&2
         return 1
     fi
     
