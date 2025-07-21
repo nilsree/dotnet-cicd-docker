@@ -12,7 +12,7 @@ ENABLE_AUTO_BUILD="${ENABLE_AUTO_BUILD:-true}"
 APP_DIR="/app"
 TEMP_DIR="/tmp/github-deploy"
 LAST_COMMIT_FILE="/app/.last_commit"
-SSH_KEY_FILE="/tmp/github_deploy_key"
+SSH_KEY_FILE="/secrets/github_deploy_key"
 
 # Logging function
 log() {
@@ -21,23 +21,19 @@ log() {
 
 # Function to setup SSH key for GitHub access
 setup_ssh_key() {
-    local deploy_key="$1"
-    
-    if [ -z "$deploy_key" ]; then
-        log "No deploy key provided, attempting public repository access"
-        return 1
-    fi
-    
-    # Create SSH directory
-    mkdir -p ~/.ssh
-    chmod 700 ~/.ssh
-    
-    # Write deploy key to file
-    echo "$deploy_key" > "$SSH_KEY_FILE"
-    chmod 600 "$SSH_KEY_FILE"
-    
-    # Configure SSH to use the key
-    cat > ~/.ssh/config << EOF
+    # Check if SSH key file exists (mounted from volume)
+    if [ -f "$SSH_KEY_FILE" ]; then
+        log "Found SSH key file at $SSH_KEY_FILE"
+        
+        # Create SSH directory
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        
+        # Ensure correct permissions on key file
+        chmod 600 "$SSH_KEY_FILE"
+        
+        # Configure SSH to use the key
+        cat > ~/.ssh/config << EOF
 Host github.com
     HostName github.com
     User git
@@ -45,11 +41,15 @@ Host github.com
     IdentitiesOnly yes
     StrictHostKeyChecking no
 EOF
-    
-    chmod 600 ~/.ssh/config
-    
-    log "SSH key configured for GitHub access"
-    return 0
+        
+        chmod 600 ~/.ssh/config
+        
+        log "SSH key configured for GitHub access"
+        return 0
+    else
+        log "No SSH key file found at $SSH_KEY_FILE, attempting public repository access"
+        return 1
+    fi
 }
 
 # Function to get latest commit hash from GitHub
