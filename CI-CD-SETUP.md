@@ -5,7 +5,7 @@
 ### 1. Prepare your repository
 Make sure your .NET repository has:
 - `.csproj` or `.sln` file in root or specify path with PROJECT_PATH
-- `deploy.sh` script (optional, default script is used if not present)
+- `deploy.sh` script (optional, automatic .NET build is used if not present)
 - Any database migration scripts (if using external database)
 
 ### 2. GitHub Deploy Key (Only for Private Repositories)
@@ -265,6 +265,44 @@ If you see "ERROR: Could not access repository":
    - Verify the repository URL format: `owner/repo` (no https:// prefix)
    - Check if repository exists and is public
    - Ensure GITHUB_REPO environment variable is set correctly
+
+#### Build Script Issues
+If you see "Build script not found" or "ERROR: Build script failed":
+
+1. **No deploy.sh needed**:
+   - Container automatically builds .NET projects if no `deploy.sh` is found
+   - Just ensure your repository has a `.csproj` or `.sln` file
+   - Set `PROJECT_PATH` if your project is in a subdirectory
+
+2. **Custom deploy.sh (optional)**:
+   - Create a `deploy.sh` file in your repository root for custom build steps
+   - Or change `BUILD_SCRIPT` environment variable to point to your script
+
+3. **Example deploy.sh for custom builds**:
+   ```bash
+   #!/bin/bash
+   echo "Starting build process..."
+   
+   # Find the .NET project file
+   PROJECT_FILE=$(find . -name "*.csproj" | head -1)
+   
+   if [ -z "$PROJECT_FILE" ]; then
+       echo "No .csproj file found"
+       exit 1
+   fi
+   
+   echo "Building project: $PROJECT_FILE"
+   
+   # Restore and build
+   dotnet restore "$PROJECT_FILE"
+   dotnet build "$PROJECT_FILE" -c Release
+   dotnet publish "$PROJECT_FILE" -c Release -o /app/publish
+   
+   # Copy published files
+   cp -r /app/publish/* /app/
+   
+   echo "Build completed successfully"
+   ```
 
 #### Container Connection Issues
 ```bash
