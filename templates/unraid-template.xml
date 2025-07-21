@@ -12,7 +12,7 @@
   <Overview>Docker container that runs .NET applications with GitHub CI/CD integration. Perfect for hosting .NET web applications with automatic deployment from GitHub on Unraid.</Overview>
   <Category>Productivity:</Category>
   <WebUI>http://[IP]:[PORT:8080]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/nilsree/dotnet-cicd-docker/main/unraid-template.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/nilsree/dotnet-cicd-docker/main/templates/unraid-template.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/nilsree/dotnet-cicd-docker/main/icon.png</Icon>
   <ExtraParams>--restart=unless-stopped</ExtraParams>
   <PostArgs/>

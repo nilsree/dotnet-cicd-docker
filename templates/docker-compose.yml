@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  dotnet-cicd-docker:
+    image: nilsree/dotnet-cicd-docker:latest
+    container_name: dotnet-cicd-docker
+    environment:
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      
+      # CI/CD configuration
+      - ENABLE_CI_CD=true
+      - GITHUB_REPO=your-username/your-repo  # Change this to your repository
+      - GITHUB_BRANCH=main
+      - PROJECT_PATH=src/YourApp/YourApp.csproj  # Optional: for monorepos
+      - POLL_INTERVAL=60
+      - BUILD_SCRIPT=deploy.sh
+      - ENABLE_AUTO_BUILD=true
+      
+      # Database connection (external database)
+      - ConnectionStrings__DefaultConnection=Server=your-external-db;Database=YourApp;User Id=username;Password=password;TrustServerCertificate=true;
+      
+      # Custom environment variables for your application
+      - CUSTOM_VAR_1=Value1
+      - CUSTOM_VAR_2=Value2
+      
+    ports:
+      - "8080:8080"    # HTTP port
+      - "8443:443"     # HTTPS port
+      
+    volumes:
+      # Application data volume
+      - ./data:/app/data
+      
+      # Optional: SSH keys for private repositories (create secrets directory first)
+      # Uncomment the line below and create secrets/github_deploy_key file for private repos
+      # - ./secrets:/secrets:ro
+      
+    restart: unless-stopped
+    
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+# Optional: External database service (example with PostgreSQL)
+# Uncomment if you want to run a database alongside your app
+#  postgres:
+#    image: postgres:15
+#    container_name: dotnet-postgres
+#    environment:
+#      - POSTGRES_DB=yourapp
+#      - POSTGRES_USER=youruser
+#      - POSTGRES_PASSWORD=yourpassword
+#    volumes:
+#      - postgres-data:/var/lib/postgresql/data
+#    ports:
+#      - "5432:5432"
+#    restart: unless-stopped
+
+#volumes:
+#  postgres-data:
+#    driver: local

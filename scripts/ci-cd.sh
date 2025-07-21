@@ -29,10 +29,7 @@ setup_ssh_key() {
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         
-        # Ensure correct permissions on key file
-        chmod 600 "$SSH_KEY_FILE"
-        
-        # Configure SSH to use the key
+        # Configure SSH to use the key (note: can't chmod read-only mounted file)
         cat > ~/.ssh/config << EOF
 Host github.com
     HostName github.com
@@ -151,7 +148,8 @@ run_build_script() {
         fi
     else
         log "Build script not found: $script_path, running default build process"
-        return run_default_build
+        run_default_build
+        return $?
     fi
 }
 
@@ -160,57 +158,97 @@ run_default_build() {
     log "Starting default .NET build process"
     cd "$APP_DIR"
     
+    # Debug: Show PROJECT_PATH if set
+    if [ -n "$PROJECT_PATH" ]; then
+        log "DEBUG: PROJECT_PATH is set to: $PROJECT_PATH"
+    fi
+    
+    # Debug: List contents of app directory
+    log "DEBUG: Contents of $APP_DIR:"
+    ls -la "$APP_DIR" | head -10
+    
+    # Debug: Search for project files
+    log "DEBUG: Searching for .NET project files..."
+    find "$APP_DIR" -name "*.sln" -o -name "*.csproj" | head -5
+    
     # Determine project file to use
     local project_file=""
     if [ -n "$PROJECT_PATH" ]; then
-        if [ -f "$PROJECT_PATH" ]; then
+        # Check if PROJECT_PATH is absolute or relative to APP_DIR
+        if [[ "$PROJECT_PATH" == /* ]]; then
+            # Absolute path
             project_file="$PROJECT_PATH"
+        else
+            # Relative path from APP_DIR
+            project_file="$APP_DIR/$PROJECT_PATH"
+        fi
+        
+        if [ -f "$project_file" ]; then
             log "Using specified project: $project_file"
         else
-            log "ERROR: Specified project not found: $PROJECT_PATH"
+            log "ERROR: Specified project not found: $project_file"
+            log "DEBUG: Checked path: $project_file"
             return 1
         fi
     else
-        # Auto-detect project file
-        if ls *.sln 1> /dev/null 2>&1; then
-            project_file="$(ls *.sln | head -n1)"
+        # Auto-detect project file - search recursively
+        local sln_file=$(find . -name "*.sln" | head -n1)
+        local csproj_file=$(find . -name "*.csproj" | head -n1)
+        
+        if [ -n "$sln_file" ]; then
+            project_file="$sln_file"
             log "Auto-detected solution: $project_file"
-        elif ls *.csproj 1> /dev/null 2>&1; then
-            project_file="$(ls *.csproj | head -n1)"
+        elif [ -n "$csproj_file" ]; then
+            project_file="$csproj_file"
             log "Auto-detected project: $project_file"
         else
             log "ERROR: No .NET project or solution file found"
+            log "DEBUG: Directory structure:"
+            find . -type f -name "*.cs" -o -name "*.csproj" -o -name "*.sln" | head -10
             return 1
         fi
     fi
     
     # Build the .NET application
+    log "Building .NET project: $project_file"
+    
+    # Navigate to project directory for build (get directory relative to current working dir)
+    local project_dir=$(dirname "$project_file")
+    local project_name=$(basename "$project_file")
+    
+    log "DEBUG: Project directory: $project_dir"
+    log "DEBUG: Project file name: $project_name"
+    
+    cd "$project_dir"
+    log "DEBUG: Changed to directory: $(pwd)"
+    
     log "Restoring NuGet packages..."
-    dotnet restore "$project_file"
+    dotnet restore "$project_name"
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to restore NuGet packages"
         return 1
     fi
     
     log "Building application..."
-    dotnet build "$project_file" -c Release
+    dotnet build "$project_name" -c Release
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to build application"
         return 1
     fi
     
     log "Publishing application..."
-    dotnet publish "$project_file" -c Release -o /app/publish
+    dotnet publish "$project_name" -c Release -o "$APP_DIR/publish"
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to publish application"
         return 1
     fi
     
     # Move published files to app directory
-    if [ -d "/app/publish" ]; then
+    if [ -d "$APP_DIR/publish" ]; then
         log "Moving published files..."
-        cp -r /app/publish/* /app/
-        rm -rf /app/publish
+        cd "$APP_DIR"
+        cp -r publish/* .
+        rm -rf publish
     fi
     
     log "Default build completed successfully"

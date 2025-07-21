@@ -5,8 +5,18 @@ on:
     types: [published]
   push:
     branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'scripts/**'
+      - 'test-examples/**'
+      - '.github/workflows/docker-publish.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'scripts/**'
+      - 'test-examples/**'
+      - '.github/workflows/docker-publish.yml'
 
 env:
   REGISTRY: docker.io
@@ -68,3 +78,4 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
         repository: ${{ env.IMAGE_NAME }}
         readme-filepath: ./README.md
+        short-description: ".NET CI/CD Docker container with automatic GitHub deployment"
