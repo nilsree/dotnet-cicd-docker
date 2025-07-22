@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0
 WORKDIR /app
 
-# Install dependencies for CI/CD functionality
+# Install system dependencies first (rarely changes - great for caching)
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     curl \
     unzip \
@@ -16,16 +16,20 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and build TestApp as fallback
-COPY test-examples/TestApp/ ./fallback/TestApp/
-RUN cd fallback/TestApp && dotnet build -c Release && dotnet publish -c Release -o ../publish
-RUN rm -rf fallback/TestApp && mv fallback/publish/* fallback/ && rm -rf fallback/publish
-
-# Copy CI/CD and deployment scripts
+# Copy CI/CD scripts first (changes less frequently than TestApp)
 COPY scripts/ci-cd.sh /ci-cd.sh
 COPY scripts/deploy.sh /deploy.sh
 COPY scripts/startup.sh /startup.sh
 RUN chmod +x /ci-cd.sh /deploy.sh /startup.sh
+
+# Copy TestApp project files only (for dependency restoration)
+COPY test-examples/TestApp/*.csproj ./fallback/TestApp/
+RUN cd fallback/TestApp && dotnet restore
+
+# Copy remaining TestApp source and build (this layer invalidates only on code changes)
+COPY test-examples/TestApp/ ./fallback/TestApp/
+RUN cd fallback/TestApp && dotnet build -c Release && dotnet publish -c Release -o ../publish
+RUN rm -rf fallback/TestApp && mv fallback/publish/* fallback/ && rm -rf fallback/publish
 
 # Environment variables with defaults
 ENV ASPNETCORE_ENVIRONMENT=Production

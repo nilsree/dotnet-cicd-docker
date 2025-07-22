@@ -273,33 +273,68 @@ run_default_build() {
 restart_dotnet_app() {
     log "Restarting .NET application..."
     
-    # Find and kill existing .NET process
+    # Find and kill existing .NET process more gently
     local dotnet_pid=$(pgrep -f "dotnet.*\.dll")
     if [ -n "$dotnet_pid" ]; then
         log "Stopping existing .NET application (PID: $dotnet_pid)"
-        kill $dotnet_pid
-        sleep 5
         
-        # Force kill if still running
+        # Send SIGTERM first for graceful shutdown
+        kill -TERM $dotnet_pid
+        sleep 3
+        
+        # Check if process still exists
         if kill -0 $dotnet_pid 2>/dev/null; then
-            log "Force killing .NET application"
-            kill -9 $dotnet_pid
+            log "Process still running, waiting additional 2 seconds..."
+            sleep 2
+            
+            # Force kill only if still running after graceful shutdown attempt
+            if kill -0 $dotnet_pid 2>/dev/null; then
+                log "Force killing .NET application"
+                kill -9 $dotnet_pid
+                sleep 1
+            fi
         fi
+        
+        log "Previous .NET application stopped"
     fi
     
     # Start new .NET application
     log "Starting new .NET application..."
     cd "$APP_DIR"
     
-    # Find the main DLL file
-    local dll_file=$(find . -name "*.dll" -type f | head -n 1)
+    # Find the main DLL file (prioritize main app over TestApp fallback)
+    local dll_file=""
+    
+    # Look for main application DLL first
+    for dll in ProjectDashboard.dll *.dll; do
+        if [ -f "$dll" ] && [ "$dll" != "TestApp.dll" ]; then
+            dll_file="$dll"
+            break
+        fi
+    done
+    
+    # Fallback to any DLL if no main app found
+    if [ -z "$dll_file" ]; then
+        dll_file=$(find . -name "*.dll" -type f | head -n 1)
+    fi
     
     if [ -n "$dll_file" ]; then
-        nohup dotnet "$dll_file" > /var/log/dotnet.log 2>&1 &
+        log "Starting .NET application: $dll_file"
+        
+        # Start with better process isolation to prevent container restart
+        nohup dotnet "$dll_file" > /var/log/dotnet.log 2>&1 < /dev/null &
         local new_pid=$!
-        log "Started new .NET application (PID: $new_pid)"
-        echo $new_pid > /var/run/dotnet.pid
-        return 0
+        
+        # Verify process started successfully
+        sleep 2
+        if kill -0 $new_pid 2>/dev/null; then
+            log "Started new .NET application (PID: $new_pid)"
+            echo $new_pid > /var/run/dotnet.pid
+            return 0
+        else
+            log "ERROR: Failed to start .NET application - process died immediately"
+            return 1
+        fi
     else
         log "ERROR: No .dll file found for .NET application"
         return 1

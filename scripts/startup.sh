@@ -148,5 +148,47 @@ start_ci_cd
 # Start .NET application
 start_dotnet_app
 
-# Wait for .NET application to finish
-wait $DOTNET_PID
+# Wait for .NET application to finish (with restart resilience)
+echo "Container ready - monitoring services..."
+
+# Continuous monitoring loop instead of simple wait
+while true; do
+    # Check if .NET process is still running
+    if ! kill -0 $DOTNET_PID 2>/dev/null; then
+        echo "DOTNET application process ended, checking for replacement..."
+        
+        # Give CI/CD time to potentially restart the application
+        sleep 5
+        
+        # Look for new .NET process
+        NEW_DOTNET_PID=$(pgrep -f "dotnet.*\.dll")
+        if [ -n "$NEW_DOTNET_PID" ]; then
+            echo "New .NET application detected (PID: $NEW_DOTNET_PID)"
+            DOTNET_PID=$NEW_DOTNET_PID
+        else
+            # Try to restart application ourselves as fallback
+            echo "No replacement found, attempting to restart application..."
+            APP_DLL=$(find_app_dll)
+            if [ -n "$APP_DLL" ]; then
+                echo "Restarting .NET application: $APP_DLL"
+                dotnet "$APP_DLL" &
+                DOTNET_PID=$!
+            else
+                echo "ERROR: Cannot restart - no application DLL found"
+                exit 1
+            fi
+        fi
+    fi
+    
+    # Check if CI/CD process is still running (restart if needed)
+    if [ "$ENABLE_CI_CD" = "true" ] && [ -n "$GITHUB_REPO" ]; then
+        if ! kill -0 $CI_CD_PID 2>/dev/null; then
+            echo "CI/CD process ended, restarting..."
+            /ci-cd.sh &
+            CI_CD_PID=$!
+        fi
+    fi
+    
+    # Wait before next check
+    sleep 10
+done
