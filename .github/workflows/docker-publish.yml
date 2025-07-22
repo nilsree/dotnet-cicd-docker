@@ -65,13 +65,13 @@ jobs:
         push: ${{ github.event_name == 'release' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        # Enhanced caching strategy
+        # Enhanced caching strategy - registry cache only on releases
         cache-from: |
           type=gha
-          type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache
+          ${{ github.event_name == 'release' && 'type=registry,ref=nilsree/dotnet-cicd-docker:cache' || '' }}
         cache-to: |
           type=gha,mode=max
-          type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache,mode=max
+          ${{ github.event_name == 'release' && 'type=registry,ref=nilsree/dotnet-cicd-docker:cache,mode=max' || '' }}
         build-args: |
           CSPROJ_PATH=test-examples/TestApp/TestApp.csproj
 
