@@ -30,19 +30,26 @@ app.UseStaticFiles();
 app.UseRouting();
 app.MapControllers();
 
-// Fallback for API endpoints - these are still available
-app.MapGet("/api", () => new 
-{ 
-    Message = "TestApp - Temporary fallback application",
-    Status = "Waiting for main application",
-    Time = DateTime.Now,
-    Environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"),
-    Version = Environment.Version.ToString(),
-    Note = "Visit '/' for deployment status page"
+// Fallback for API endpoints - these return HTTP 503 Service Unavailable
+app.MapGet("/api", (HttpContext context) => 
+{
+    context.Response.StatusCode = 503; // Service Unavailable
+    return new 
+    { 
+        Message = "TestApp - Temporary fallback application",
+        Status = "Waiting for main application",
+        Time = DateTime.Now,
+        Environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"),
+        Version = Environment.Version.ToString(),
+        Note = "Visit '/' for deployment status page",
+        StatusCode = 503
+    };
 });
 
-app.MapGet("/env", () => 
+app.MapGet("/env", (HttpContext context) => 
 {
+    context.Response.StatusCode = 503; // Service Unavailable
+    
     var envVars = new Dictionary<string, string>();
     
     // Get common environment variables
@@ -76,7 +83,52 @@ app.MapGet("/env", () =>
         }
     }
     
-    return envVars;
+    return new { Environment = envVars, StatusCode = 503 };
+});
+
+// Health check endpoint (also returns 503)
+app.MapGet("/health", (HttpContext context) => 
+{
+    context.Response.StatusCode = 503; // Service Unavailable
+    return new 
+    {
+        Status = "Service Unavailable",
+        Message = "Main application is being deployed",
+        StatusCode = 503,
+        Time = DateTime.Now
+    };
+});
+
+// SPA Fallback - serve index.html for all non-API routes with 503 status
+app.MapFallback(async (HttpContext context) =>
+{
+    // Don't handle API routes, Swagger, or static files here
+    var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
+    
+    if (path.StartsWith("/api") || 
+        path.StartsWith("/swagger") || 
+        path.StartsWith("/health") ||
+        path.StartsWith("/env") ||
+        Path.HasExtension(path)) // Skip files with extensions (CSS, JS, images, etc.)
+    {
+        context.Response.StatusCode = 404;
+        return;
+    }
+    
+    // Set 503 status for all fallback routes
+    context.Response.StatusCode = 503;
+    context.Response.ContentType = "text/html";
+    
+    // Serve the index.html file
+    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
+    if (File.Exists(indexPath))
+    {
+        await context.Response.SendFileAsync(indexPath);
+    }
+    else
+    {
+        await context.Response.WriteAsync("<h1>503 - Service Unavailable</h1><p>Deployment in progress...</p>");
+    }
 });
 
 app.Run();
