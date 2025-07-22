@@ -318,21 +318,25 @@ deploy_update() {
     
     # Download new version
     if download_repo "$repo" "$branch" "$APP_DIR"; then
+        # Update commit hash after successful download to prevent re-deployment loops
+        echo "$commit_hash" > "$LAST_COMMIT_FILE"
+        log "Repository downloaded successfully, commit hash updated to prevent loops"
+        
         # Run build script if enabled
         local build_script_path="$APP_DIR/$BUILD_SCRIPT"
         if run_build_script "$build_script_path"; then
+            log "Build completed successfully"
+            
             # Restart application
             if restart_dotnet_app; then
-                # Update last commit hash
-                echo "$commit_hash" > "$LAST_COMMIT_FILE"
                 log "Deployment completed successfully"
                 return 0
             else
-                log "ERROR: Failed to restart .NET application"
+                log "ERROR: Failed to restart .NET application (code already deployed)"
                 return 1
             fi
         else
-            log "ERROR: Build script failed"
+            log "ERROR: Build script failed (but code already deployed, won't retry)"
             return 1
         fi
     else
