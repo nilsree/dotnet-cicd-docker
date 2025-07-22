@@ -66,25 +66,29 @@ get_latest_commit() {
     local ssh_url="git@github.com:$repo.git"
     local https_url="https://github.com/$repo.git"
     
-    # Try SSH access first
+    # Try SSH access first with timeout
     if [ -f "$SSH_KEY_FILE" ]; then
         log "Attempting SSH access to repository"
-        local commit_hash=$(git ls-remote "$ssh_url" "refs/heads/$branch" 2>/dev/null | cut -f1)
+        local commit_hash=$(timeout 15 git ls-remote "$ssh_url" "refs/heads/$branch" 2>/dev/null | cut -f1)
         if [ -n "$commit_hash" ]; then
             echo "$commit_hash"
             return 0
+        else
+            log "SSH access failed or returned empty"
         fi
     fi
     
-    # Fallback to HTTPS for public repositories
+    # Fallback to HTTPS for public repositories (with timeout to avoid hanging)
     log "Attempting HTTPS access to repository"
-    local commit_hash=$(git ls-remote "$https_url" "refs/heads/$branch" 2>/dev/null | cut -f1)
+    local commit_hash=$(timeout 10 git ls-remote "$https_url" "refs/heads/$branch" 2>/dev/null | cut -f1)
     if [ -n "$commit_hash" ]; then
         echo "$commit_hash"
         return 0
+    else
+        log "HTTPS access failed or requires authentication"
     fi
     
-    log "ERROR: Could not access repository"
+    log "ERROR: Could not access repository with available methods"
     return 1
 }
 
@@ -108,7 +112,7 @@ download_repo() {
     # Try SSH access first
     if [ -f "$SSH_KEY_FILE" ]; then
         log "Attempting SSH clone"
-        if git clone --depth 1 --branch "$branch" "$ssh_url" repo; then
+        if timeout 30 git clone --depth 1 --branch "$branch" "$ssh_url" repo; then
             log "SSH clone successful"
             cp -r repo/* "$dest/"
             rm -rf "$TEMP_DIR"  # Clean up temp directory
@@ -120,7 +124,7 @@ download_repo() {
     
     # Fallback to HTTPS for public repositories
     log "Attempting HTTPS clone"
-    if git clone --depth 1 --branch "$branch" "$https_url" repo; then
+    if timeout 30 git clone --depth 1 --branch "$branch" "$https_url" repo; then
         log "HTTPS clone successful"
         cp -r repo/* "$dest/"
         rm -rf "$TEMP_DIR"  # Clean up temp directory
@@ -378,7 +382,7 @@ main() {
         
         if [ -n "$latest_commit" ]; then
             if [ "$latest_commit" != "$last_commit" ]; then
-                log "New commit detected: $latest_commit"
+                log "New commit detected: $latest_commit (was: $last_commit)"
                 
                 # Perform deployment
                 if deploy_update "$GITHUB_REPO" "$GITHUB_BRANCH" "$latest_commit"; then
@@ -388,10 +392,11 @@ main() {
                     log "ERROR: Deployment failed for commit: $latest_commit"
                 fi
             else
-                log "No new commits detected"
+                log "No new commits detected (current: $latest_commit)"
             fi
         else
-            log "ERROR: Could not fetch latest commit from GitHub"
+            log "ERROR: Could not fetch latest commit from GitHub - skipping deployment"
+            # Don't attempt deployment if we can't get commit hash
         fi
         
         # Wait before next poll
