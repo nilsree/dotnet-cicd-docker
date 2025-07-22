@@ -1,5 +1,9 @@
 var builder = WebApplication.CreateBuilder(args);
 
+// Set content root to current directory (where the app actually runs from)
+builder.Environment.ContentRootPath = Directory.GetCurrentDirectory();
+builder.Environment.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -14,16 +18,27 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Configure default files to serve index.html when requesting "/"
+var defaultFilesOptions = new DefaultFilesOptions();
+defaultFilesOptions.DefaultFileNames.Clear();
+defaultFilesOptions.DefaultFileNames.Add("index.html");
+app.UseDefaultFiles(defaultFilesOptions);
+
+// Enable static files to serve our beautiful loading page
+app.UseStaticFiles();
+
 app.UseRouting();
 app.MapControllers();
 
-// Simple endpoints for testing
-app.MapGet("/", () => new 
+// Fallback for API endpoints - these are still available
+app.MapGet("/api", () => new 
 { 
-    Message = "Hello from .NET in Docker!",
+    Message = "TestApp - Temporary fallback application",
+    Status = "Waiting for main application",
     Time = DateTime.Now,
     Environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"),
-    Version = Environment.Version.ToString()
+    Version = Environment.Version.ToString(),
+    Note = "Visit '/' for deployment status page"
 });
 
 app.MapGet("/env", () => 

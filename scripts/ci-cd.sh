@@ -68,24 +68,24 @@ get_latest_commit() {
     
     # Try SSH access first with timeout
     if [ -f "$SSH_KEY_FILE" ]; then
-        log "Attempting SSH access to repository"
+        log "Attempting SSH access to repository" >&2
         local commit_hash=$(timeout 15 git ls-remote "$ssh_url" "refs/heads/$branch" 2>/dev/null | cut -f1)
         if [ -n "$commit_hash" ]; then
             echo "$commit_hash"
             return 0
         else
-            log "SSH access failed or returned empty"
+            log "SSH access failed or returned empty" >&2
         fi
     fi
     
     # Fallback to HTTPS for public repositories (with timeout to avoid hanging)
-    log "Attempting HTTPS access to repository"
+    log "Attempting HTTPS access to repository" >&2
     local commit_hash=$(timeout 10 git ls-remote "$https_url" "refs/heads/$branch" 2>/dev/null | cut -f1)
     if [ -n "$commit_hash" ]; then
         echo "$commit_hash"
         return 0
     else
-        log "HTTPS access failed or requires authentication"
+        log "HTTPS access failed or requires authentication" >&2
     fi
     
     log "ERROR: Could not access repository with available methods"

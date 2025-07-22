@@ -1,0 +1,46 @@
+/* Additional custom styles for deployment status page */
+
+.bounce-in {
+    animation: bounceIn 0.8s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.glow {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive improvements */
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.5rem;
+    }
+    
+    .logo {
+        font-size: 2rem;
+    }
+    
+    .features {
+        gap: 0.5rem;
+    }
+    
+    .feature {
+        padding: 0.75rem;
+    }
+}

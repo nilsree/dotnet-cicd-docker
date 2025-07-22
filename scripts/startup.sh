@@ -112,7 +112,18 @@ start_dotnet_app() {
     fi
     
     echo "Starting .NET application: $APP_DLL"
-    dotnet "$APP_DLL" &
+    
+    # Change to the correct directory based on where the DLL is located
+    if [[ "$APP_DLL" == fallback/* ]]; then
+        cd /app/fallback
+        # Remove the fallback/ prefix from the DLL name
+        local dll_name=$(basename "$APP_DLL")
+        dotnet "$dll_name" &
+    else
+        cd /app
+        dotnet "$APP_DLL" &
+    fi
+    
     DOTNET_PID=$!
     
     echo ".NET application started successfully"
