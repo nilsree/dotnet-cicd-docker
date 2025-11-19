@@ -1,7 +1,7 @@
 # Single-stage Dockerfile for .NET Application with GitHub CI/CD
 
 # .NET SDK stage with CI/CD capabilities
-FROM mcr.microsoft.com/dotnet/sdk:9.0
+FROM mcr.microsoft.com/dotnet/sdk:10.0
 WORKDIR /app
 
 # Install system dependencies first (rarely changes - great for caching)
